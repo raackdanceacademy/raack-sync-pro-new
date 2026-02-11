@@ -1,5 +1,4 @@
-import os  # ADD THIS LINE AT THE TOP
-
+import os
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import pandas as pd
@@ -26,8 +25,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ===============================
 # UPLOAD CONFIG - MODIFIED FOR PYTHONANYWHERE
 # ===============================
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'temp_uploads')  # CHANGED
-ZIP_FOLDER = os.path.join(BASE_DIR, 'temp_zips')  # CHANGED
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'temp_uploads')
+ZIP_FOLDER = os.path.join(BASE_DIR, 'temp_zips')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ZIP_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -45,7 +44,7 @@ BRANCHES = [
     "MARAIMALAI NAGAR", "PADUR", "MEDAVAKKAM", "PADAPPAI", "AMBATTUR",
     "ARUMBAKKAM", "AYAPAKKAM", "SITHALAPAKKAM", "PERUMBAKKAM", "BASAVANAGUDI",
     "PUDUPAKKAM", "URAPAKKAM", "THANJAVUR", "PAMMAL", "KUMBAKONAM",
-    "MADURAVOYAL", "KANDIGAI"
+    "MADURAVOYAL", "KANDIGAI", "KUNDRATHUR"
 ]
 
 STATUSES = [
@@ -67,9 +66,9 @@ SHEET_IDS = {
 }
 
 # ===============================
-# SERVICE ACCOUNT - MODIFIED FOR PYTHONANYWHERE
+# SERVICE ACCOUNT
 # ===============================
-SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, "credentials/service_account.json")  # CHANGED
+SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, "credentials/service_account.json")
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -77,17 +76,16 @@ SCOPES = [
 ]
 
 # ===============================
-# 🔥 DATA CLEANING (MOST IMPORTANT)
+# 🔥 DATA CLEANING
 # ===============================
 def clean_dataframe_for_json(df):
     df = df.copy()
     df.replace([float("inf"), float("-inf")], "", inplace=True)
     df.fillna("", inplace=True)
     
-    # Convert numpy types to Python native types for JSON serialization
     for col in df.columns:
         if df[col].dtype == 'int64':
-            df[col] = df[col].astype('Int64')  # Use nullable integer type
+            df[col] = df[col].astype('Int64')
         elif df[col].dtype == 'float64':
             df[col] = df[col].astype('float')
     
@@ -139,10 +137,8 @@ def get_google_sheets_client():
 def find_empty_row_for_append(worksheet):
     """Find the first empty row to append data - OPTIMIZED VERSION"""
     try:
-        # Get values in chunks to reduce API calls
         all_values = worksheet.get_all_values()
         
-        # Find last non-empty row
         last_row = 0
         for i, row in enumerate(all_values, start=1):
             if any(cell.strip() for cell in row):
@@ -151,25 +147,59 @@ def find_empty_row_for_append(worksheet):
         return last_row + 1
     except Exception as e:
         print(f"Error finding empty row: {e}")
-        return 2  # Start from row 2 as fallback
+        return 2
 
 def get_existing_bill_nos(worksheet):
     """Get all existing bill numbers from the worksheet - OPTIMIZED"""
     bill_nos = set()
     try:
-        # Get all values once
         all_values = worksheet.get_all_values()
         
-        # Process column C values (index 2)
         for row in all_values:
             if len(row) > 2:
                 bill_no = row[2]
-                if bill_no and bill_no.strip() and not bill_no.startswith("Bill No"):
-                    bill_nos.add(bill_no.strip())
+                # Clean and check the bill number
+                if bill_no:
+                    bill_no = str(bill_no).strip()
+                    # Skip headers and empty values
+                    if bill_no and not bill_no.startswith("Bill No"):
+                        bill_nos.add(bill_no)
         return bill_nos
     except Exception as e:
         print(f"Error getting existing bill numbers: {e}")
         return set()
+
+def validate_bill_no_uniqueness(df):
+    """Validate that Bill No is unique in the uploaded data itself"""
+    try:
+        # Clean Bill No column
+        df = df.copy()
+        df["Bill No"] = df["Bill No"].astype(str).str.strip()
+        
+        # Remove empty bill numbers
+        df = df[df["Bill No"] != ""]
+        
+        # Check for duplicates in uploaded data
+        duplicates_in_upload = df[df.duplicated(subset=['Bill No'], keep=False)]
+        
+        if not duplicates_in_upload.empty:
+            print(f"⚠️  Found {len(duplicates_in_upload)} duplicate Bill Nos in uploaded data")
+            duplicate_counts = duplicates_in_upload['Bill No'].value_counts()
+            print(f"🔍 Most common duplicates: {duplicate_counts.head(5).to_dict()}")
+            
+            # Remove duplicates within uploaded data (keep first occurrence)
+            df_unique = df.drop_duplicates(subset=['Bill No'], keep='first')
+            removed_count = len(df) - len(df_unique)
+            print(f"🗑️  Removed {removed_count} duplicate rows from uploaded data")
+            
+            return df_unique, removed_count
+        else:
+            print("✅ No duplicates found within uploaded data")
+            return df, 0
+            
+    except Exception as e:
+        print(f"Error validating bill number uniqueness: {e}")
+        return df, 0
 
 def convert_numpy_to_python(obj):
     """Convert numpy/pandas types to Python native types"""
@@ -191,10 +221,9 @@ def convert_numpy_to_python(obj):
 def normalize_sheet_name(name):
     """Normalize sheet name by removing extra spaces and special characters"""
     name = str(name).strip()
-    # Replace characters that Google Sheets doesn't allow in sheet names
     for char in ['\\', '/', '*', '?', ':', '[', ']']:
         name = name.replace(char, '_')
-    return name[:31]  # Truncate to max 31 chars
+    return name[:31]
 
 def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
     """Prepare data in the correct format for Google Sheets"""
@@ -202,7 +231,7 @@ def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
     
     # Add date separator
     date_row = [f"Data Saved On: {today} {current_time}"]
-    date_row.extend([""] * 19)  # Fill remaining 19 columns
+    date_row.extend([""] * 19)
     data_to_append.append(date_row)
     
     # Add column headers
@@ -257,7 +286,7 @@ def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
         net_amount = row.get("Net Amount", 0)
         row_data.append(float(net_amount) if not pd.isna(net_amount) else 0)
         
-        # Add remaining columns (fill with empty strings if not present)
+        # Add remaining columns
         for col in ["Paid AT", "Bill Status", "Created By", "Created On", 
                    "order id", "tracking id", "bank ref no", "order status", 
                    "payment mode", "card name"]:
@@ -277,7 +306,7 @@ def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
              float(new_data["Total Discount Amount"].sum()) if not new_data.empty else 0,
              float(new_data["Total Tax Amount"].sum()) if not new_data.empty else 0,
              float(new_data["Net Amount"].sum()) if not new_data.empty else 0]
-    totals.extend([""] * 10)  # Fill remaining columns
+    totals.extend([""] * 10)
     data_to_append.append(totals)
     
     # Add 3 more empty rows for separation
@@ -287,20 +316,17 @@ def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
     return data_to_append
 
 # ===============================
-# NEW: ZIP FILE GENERATION FUNCTIONS
+# ZIP FILE GENERATION FUNCTIONS
 # ===============================
 def create_excel_with_summary(df, sheet_name, folder_path):
     """Create Excel file with summary for a specific status"""
     try:
-        # Create a new Excel writer
         file_path = os.path.join(folder_path, f"{sheet_name}.xlsx")
         
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-            # Add summary sheet
             summary_data = []
             
             if not df.empty:
-                # Group by Branch Name and calculate totals
                 grouped = df.groupby('Branch Name').agg({
                     'Total Bill Amount': 'sum',
                     'Total Discount Amount': 'sum',
@@ -313,7 +339,6 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                 grouped.columns = ['Branch Name', 'Total Bill Amount', 'Total Discount Amount', 
                                  'Total Tax Amount', 'Net Amount', 'Record Count']
                 
-                # Calculate grand totals
                 grand_totals = pd.DataFrame({
                     'Branch Name': ['GRAND TOTAL'],
                     'Total Bill Amount': [grouped['Total Bill Amount'].sum()],
@@ -323,7 +348,6 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                     'Record Count': [grouped['Record Count'].sum()]
                 })
                 
-                # Combine grouped data with grand totals
                 summary_df = pd.concat([grouped, grand_totals], ignore_index=True)
                 summary_data = summary_df
             else:
@@ -336,14 +360,11 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                     'Record Count': [0]
                 })
             
-            # Write summary sheet
             summary_data.to_excel(writer, sheet_name='Summary', index=False)
             
-            # Write detailed data sheet if data exists
             if not df.empty:
                 df.to_excel(writer, sheet_name='Detailed Data', index=False)
             
-            # Auto-adjust column widths
             workbook = writer.book
             for sheet_name in writer.sheets:
                 worksheet = writer.sheets[sheet_name]
@@ -371,13 +392,9 @@ def generate_zip_files(df):
         zip_filename = f"branch_data_{timestamp}.zip"
         zip_path = os.path.join(app.config['ZIP_FOLDER'], zip_filename)
         
-        # Create temporary directory for Excel files
         temp_dir = tempfile.mkdtemp()
-        
-        # Dictionary to track files for each status
         status_files = {}
         
-        # Process each status
         for status in STATUSES:
             status_df = df[df["order status"] == status]
             
@@ -385,38 +402,31 @@ def generate_zip_files(df):
                 print(f"⏭️  No data for status: {status}")
                 continue
             
-            # Create status folder
             status_folder = os.path.join(temp_dir, status)
             os.makedirs(status_folder, exist_ok=True)
             
-            # Create Excel file for this status
             status_file = create_excel_with_summary(status_df, status, status_folder)
             if status_file:
                 status_files[status] = status_file
             
-            # Process each branch within this status
             for branch, branch_df in status_df.groupby("Branch Name"):
                 if branch_df.empty:
                     continue
                 
-                # Create branch Excel file
                 branch_file = create_excel_with_summary(
                     branch_df, 
                     f"{branch}_{status}", 
                     status_folder
                 )
         
-        # Create ZIP file
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(temp_dir):
                 for file in files:
                     if file.endswith('.xlsx'):
                         file_path = os.path.join(root, file)
-                        # Create relative path for ZIP
                         rel_path = os.path.relpath(file_path, temp_dir)
                         zipf.write(file_path, rel_path)
         
-        # Clean up temporary directory
         shutil.rmtree(temp_dir)
         
         return zip_filename, zip_path, len(status_files)
@@ -451,19 +461,26 @@ def upload_file():
         if missing:
             return jsonify({'error': f'Missing columns: {missing}'}), 400
 
-        # Clean and convert data
         df = clean_dataframe_for_json(df)
+        
+        # Check for duplicates in uploaded data
+        df, duplicates_removed = validate_bill_no_uniqueness(df)
+        
+        # Save cleaned data
         df.to_csv(os.path.join(UPLOAD_FOLDER, 'temp_data.csv'), index=False)
         
-        # Convert to native Python types for JSON response
-        df_json = df.head(10).to_dict(orient='records')  # Preview first 10 rows
+        df_json = df.head(10).to_dict(orient='records')
         df_json = convert_numpy_to_python(df_json)
         
         return jsonify({
             'success': True, 
             'rows': len(df),
             'preview': df_json,
-            'columns': list(df.columns)
+            'columns': list(df.columns),
+            'duplicate_info': {
+                'duplicates_removed': int(duplicates_removed),
+                'unique_rows_remaining': int(len(df))
+            }
         })
 
     except Exception as e:
@@ -485,17 +502,14 @@ def process_data():
         df = clean_dataframe_for_json(df)
         
         if option == 'google_sheets':
-            # Call existing Google Sheets update function
             return update_google_sheets()
             
         elif option == 'download_zip':
-            # Generate ZIP files
             zip_filename, zip_path, status_count = generate_zip_files(df)
             
             if not zip_filename:
                 return jsonify({'error': 'Failed to generate ZIP files'}), 500
             
-            # Count records per status for summary
             status_summary = {}
             for status in STATUSES:
                 status_df = df[df["order status"] == status]
@@ -537,11 +551,9 @@ def update_google_sheets():
         total_rows_updated = 0
         summary = {}
         
-        # Batch processing to reduce API calls
-        batch_size = 5  # Process 5 worksheets at a time with delay
+        batch_size = 5
         processed_count = 0
         
-        # Cache for worksheet data to avoid repeated API calls
         worksheet_cache = {}
         
         # Group data by status first
@@ -556,38 +568,31 @@ def update_google_sheets():
                 print(f"⏭️  No data for status: {status}")
                 continue
             
-            # Get all worksheets ONCE per spreadsheet
             print(f"📊 Getting worksheets for {status}...")
             all_worksheets = spreadsheet.worksheets()
             existing_worksheets = {}
             for ws in all_worksheets:
                 existing_worksheets[ws.title.lower()] = ws
             
-            # Process each branch
             branches_data = list(status_df.groupby("Branch Name"))
             
             for branch, branch_df in branches_data:
-                # Rate limiting check
                 processed_count += 1
                 if processed_count % batch_size == 0:
                     print(f"⏳ Rate limiting: Waiting 15 seconds...")
-                    time.sleep(15)  # Wait 15 seconds after every batch
+                    time.sleep(15)
                 
-                # Normalize the worksheet name
                 ws_name = normalize_sheet_name(branch)
                 
-                # Check if worksheet exists (case-insensitive)
                 if ws_name.lower() in existing_worksheets:
                     ws = existing_worksheets[ws_name.lower()]
                     print(f"✅ Found existing worksheet: {ws.title}")
                 else:
-                    # Create new worksheet if doesn't exist
                     print(f"📄 Creating new worksheet: {ws_name}")
                     try:
                         ws = spreadsheet.add_worksheet(title=ws_name, rows="1000", cols="20")
                         print(f"✅ Created new worksheet: {ws_name}")
                         
-                        # Add initial headers for new sheet
                         date_header = [f"Data Saved On: {today} {current_time}"] + [""] * 19
                         headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName", 
                                       "Bill Date", "Total Bill Amount", "Total Discount Amount", 
@@ -595,7 +600,6 @@ def update_google_sheets():
                                       "Created By", "Created On", "order id", "tracking id", 
                                       "bank ref no", "order status", "payment mode", "card name"]
                         
-                        # Batch update headers
                         ws.batch_update([{
                             'range': 'A1:T1',
                             'values': [date_header]
@@ -604,18 +608,17 @@ def update_google_sheets():
                             'values': [headers_list]
                         }])
                         
-                        # Update cache
                         existing_worksheets[ws_name.lower()] = ws
                         worksheet_cache[ws_name.lower()] = {
                             'data': [],
                             'last_updated': datetime.now()
                         }
+                        print(f"💾 Initialized empty cache for new worksheet: {ws_name}")
                         
                     except Exception as e:
                         error_msg = str(e)
                         if "already exists" in error_msg.lower():
                             print(f"⚠️  Worksheet '{ws_name}' exists. Trying to find it...")
-                            # Refresh worksheet list
                             all_worksheets = spreadsheet.worksheets()
                             existing_worksheets = {}
                             for ws_obj in all_worksheets:
@@ -631,48 +634,76 @@ def update_google_sheets():
                             print(f"❌ Error creating worksheet: {e}")
                             continue
                 
-                # Get existing bill numbers - use cache if available
                 cache_key = ws_name.lower()
+                
                 if cache_key in worksheet_cache:
-                    # Check if cache is fresh (less than 5 minutes old)
                     cache_age = (datetime.now() - worksheet_cache[cache_key]['last_updated']).total_seconds()
-                    if cache_age < 300:  # 5 minutes
+                    if cache_age < 300:
                         existing_bill_nos = set(worksheet_cache[cache_key]['data'])
-                        print(f"📦 Using cached bill numbers for {ws.title}")
+                        print(f"📦 Using cached bill numbers for {ws.title} ({len(existing_bill_nos)} bills)")
                     else:
-                        # Cache expired, fetch fresh data
                         existing_bill_nos = get_existing_bill_nos(ws)
                         worksheet_cache[cache_key] = {
                             'data': list(existing_bill_nos),
                             'last_updated': datetime.now()
                         }
+                        print(f"🔄 Refreshed cache for {ws.title} ({len(existing_bill_nos)} bills)")
                 else:
-                    # First time fetching for this worksheet
                     existing_bill_nos = get_existing_bill_nos(ws)
                     worksheet_cache[cache_key] = {
                         'data': list(existing_bill_nos),
                         'last_updated': datetime.now()
                     }
+                    print(f"📊 Fetched fresh bill numbers for {ws.title} ({len(existing_bill_nos)} bills)")
                 
-                # Filter out duplicates - convert to string for comparison
-                branch_df["Bill No"] = branch_df["Bill No"].astype(str)
-                new_data = branch_df[~branch_df["Bill No"].isin(existing_bill_nos)]
+                print(f"🔍 Worksheet '{ws.title}' has {len(existing_bill_nos)} existing bill numbers")
+                
+                # Clean bill numbers properly
+                existing_bill_nos_clean = {str(bill).strip() for bill in existing_bill_nos if str(bill).strip()}
+                
+                # Clean branch_df bill numbers
+                branch_df = branch_df.copy()
+                branch_df["Bill No"] = branch_df["Bill No"].astype(str).str.strip()
+                
+                # Remove any empty bill numbers
+                branch_df = branch_df[branch_df["Bill No"] != ""]
+                
+                sample_new_bills = branch_df["Bill No"].head(5).tolist()
+                sample_existing_bills = list(existing_bill_nos_clean)[:5] if existing_bill_nos_clean else []
+                print(f"🔍 Sample new bills: {sample_new_bills}")
+                print(f"🔍 Sample existing bills: {sample_existing_bills}")
+                
+                # Filter for new bills only
+                new_data = branch_df[~branch_df["Bill No"].isin(existing_bill_nos_clean)]
+                
+                total_rows = len(branch_df)
+                new_rows = len(new_data)
+                duplicate_rows = total_rows - new_rows
+                
+                # Detailed logging for duplicate check
+                print(f"🔍 Duplicate check details:")
+                print(f"   - Total rows in branch data: {total_rows}")
+                print(f"   - Existing bill numbers in sheet: {len(existing_bill_nos_clean)}")
+                print(f"   - New rows to add: {new_rows}")
+                print(f"   - Duplicates filtered out: {duplicate_rows}")
+                
+                # Log specific duplicates if any
+                if duplicate_rows > 0:
+                    duplicate_bills = set(branch_df["Bill No"]) - set(new_data["Bill No"])
+                    if duplicate_bills:
+                        print(f"   - Example duplicate bill numbers: {list(duplicate_bills)[:5]}")
                 
                 if len(new_data) == 0:
-                    print(f"⏭️  No new data for {branch} ({status})")
+                    print(f"⏭️  No new data for {branch} ({status}) - all {duplicate_rows} rows were duplicates")
                     continue
                 
-                # Find where to append new data
                 append_row = find_empty_row_for_append(ws)
                 
-                # Determine starting serial number
                 start_serial = 1
-                if append_row > 2:  # If there's existing data
+                if append_row > 2:
                     try:
-                        # Get existing values once
                         existing_values = ws.get_all_values()
                         
-                        # Find last section with data
                         last_serial = 0
                         for row in existing_values:
                             if row and row[0] and row[0].isdigit():
@@ -684,63 +715,74 @@ def update_google_sheets():
                                     continue
                         
                         start_serial = last_serial + 1
+                        print(f"🔢 Starting serial number: {start_serial}")
                     except:
                         start_serial = 1
                 
-                # Prepare data for the sheet
                 data_to_append = prepare_data_for_sheet(new_data, today, current_time, start_serial)
                 
-                # Append the data in a single batch
                 if data_to_append:
                     try:
-                        # Calculate the range
                         start_range = f"A{append_row}"
                         end_row = append_row + len(data_to_append) - 1
                         end_range = f"T{end_row}"
                         full_range = f"{start_range}:{end_range}"
                         
-                        # Update the sheet with all data at once
+                        print(f"📝 Updating range {full_range} with {len(new_data)} new rows")
+                        
                         ws.update(full_range, data_to_append)
                         
-                        # Update cache with new bill numbers
-                        new_bill_nos = new_data["Bill No"].tolist()
-                        updated_cache_data = list(existing_bill_nos) + new_bill_nos
-                        worksheet_cache[cache_key] = {
-                            'data': updated_cache_data,
-                            'last_updated': datetime.now()
-                        }
+                        new_bill_nos = new_data["Bill No"].astype(str).str.strip().tolist()
                         
-                        print(f"✅ Added {len(new_data)} rows to {ws.title} ({status})")
+                        if cache_key in worksheet_cache:
+                            current_cache = worksheet_cache[cache_key]['data']
+                            updated_cache_data = list(set(current_cache + new_bill_nos))
+                            worksheet_cache[cache_key] = {
+                                'data': updated_cache_data,
+                                'last_updated': datetime.now()
+                            }
+                            print(f"💾 Updated cache with {len(new_bill_nos)} new bill numbers")
+                            print(f"💾 Cache now has {len(updated_cache_data)} total bill numbers")
+                        else:
+                            worksheet_cache[cache_key] = {
+                                'data': new_bill_nos,
+                                'last_updated': datetime.now()
+                            }
+                        
+                        print(f"✅ Successfully added {len(new_data)} rows to {ws.title} ({status})")
                         
                     except Exception as e:
                         print(f"❌ Error updating sheet {ws.title}: {e}")
-                        # Wait and retry once
                         time.sleep(30)
                         try:
                             ws.update(full_range, data_to_append)
                             print(f"✅ Retry successful for {ws.title}")
+                            
+                            new_bill_nos = new_data["Bill No"].astype(str).str.strip().tolist()
+                            if cache_key in worksheet_cache:
+                                current_cache = worksheet_cache[cache_key]['data']
+                                updated_cache_data = list(set(current_cache + new_bill_nos))
+                                worksheet_cache[cache_key] = {
+                                    'data': updated_cache_data,
+                                    'last_updated': datetime.now()
+                                }
                         except:
                             print(f"❌ Retry failed for {ws.title}")
                             continue
                 
-                # Update counters
                 rows_added = len(new_data)
                 total_rows_updated += rows_added
                 
-                # Store summary
                 if status not in summary:
                     summary[status] = {}
                 if branch not in summary[status]:
                     summary[status][branch] = 0
                 summary[status][branch] += rows_added
                 
-                # Small delay between worksheets to avoid rate limiting
                 time.sleep(2)
         
-        # Convert summary to native Python types for JSON serialization
         summary = convert_numpy_to_python(summary)
         
-        # Prepare response message
         response_message = f"Google Sheets updated successfully!\n"
         response_message += f"Total rows added: {total_rows_updated}\n"
         response_message += f"Date: {today} {current_time}\n\n"
@@ -790,30 +832,210 @@ def check_google_sheets():
     })
 
 # ===============================
-# CLEANUP ROUTINE (Optional)
+# CHECK DUPLICATES ROUTE
+# ===============================
+@app.route('/check-duplicates', methods=['POST'])
+def check_duplicates():
+    """Check for duplicate Bill Nos in uploaded data"""
+    try:
+        path = os.path.join(UPLOAD_FOLDER, 'temp_data.csv')
+        if not os.path.exists(path):
+            return jsonify({'error': 'Upload file first'}), 400
+        
+        df = pd.read_csv(path)
+        df = clean_dataframe_for_json(df)
+        
+        # Clean Bill No column
+        df["Bill No"] = df["Bill No"].astype(str).str.strip()
+        df = df[df["Bill No"] != ""]
+        
+        # Check for duplicates
+        duplicate_df = df[df.duplicated(subset=['Bill No'], keep=False)]
+        
+        if duplicate_df.empty:
+            return jsonify({
+                'has_duplicates': False,
+                'message': 'No duplicate Bill Nos found in uploaded data'
+            })
+        
+        # Group duplicates
+        duplicates_summary = []
+        for bill_no, group in duplicate_df.groupby('Bill No'):
+            duplicates_summary.append({
+                'bill_no': str(bill_no),
+                'count': int(len(group)),
+                'branches': group['Branch Name'].unique().tolist(),
+                'statuses': group['order status'].unique().tolist()
+            })
+        
+        # Sort by count descending
+        duplicates_summary.sort(key=lambda x: x['count'], reverse=True)
+        
+        return jsonify({
+            'has_duplicates': True,
+            'total_duplicate_bills': len(duplicate_df['Bill No'].unique()),
+            'total_duplicate_rows': len(duplicate_df),
+            'duplicates': duplicates_summary[:20],  # Top 20 duplicates
+            'message': f'Found {len(duplicate_df)} duplicate rows across {len(duplicate_df["Bill No"].unique())} bill numbers'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===============================
+# DEBUG ROUTE FOR DUPLICATES
+# ===============================
+@app.route('/debug-worksheet/<status>/<branch>')
+def debug_worksheet(status, branch):
+    """Debug endpoint to check worksheet data for duplicates"""
+    try:
+        gc = get_google_sheets_client()
+        if not gc:
+            return jsonify({'error': 'Google auth failed'}), 500
+        
+        if status not in SHEET_IDS:
+            return jsonify({'error': 'Invalid status'}), 400
+        
+        spreadsheet = gc.open_by_key(SHEET_IDS[status])
+        ws_name = normalize_sheet_name(branch)
+        
+        ws = None
+        for worksheet in spreadsheet.worksheets():
+            if worksheet.title.lower() == ws_name.lower():
+                ws = worksheet
+                break
+        
+        if not ws:
+            return jsonify({'error': f'Worksheet {branch} not found'}), 404
+        
+        all_values = ws.get_all_values()
+        
+        bill_numbers = []
+        for row in all_values:
+            if len(row) > 2:
+                bill_no = row[2]
+                if bill_no and bill_no.strip() and not bill_no.startswith("Bill No"):
+                    bill_numbers.append(bill_no.strip())
+        
+        duplicates = []
+        seen = set()
+        for bill in bill_numbers:
+            if bill in seen:
+                duplicates.append(bill)
+            else:
+                seen.add(bill)
+        
+        return jsonify({
+            'worksheet': ws.title,
+            'status': status,
+            'total_rows': len(all_values),
+            'total_bill_numbers': len(bill_numbers),
+            'unique_bill_numbers': len(seen),
+            'duplicates_found': len(duplicates),
+            'duplicate_list': duplicates[:20],
+            'sample_bill_numbers': list(seen)[:10]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===============================
+# COMPARE BILLS ROUTE
+# ===============================
+@app.route('/compare-bills', methods=['POST'])
+def compare_bills():
+    """Compare bill numbers between uploaded data and Google Sheets"""
+    try:
+        data = request.json
+        status = data.get('status')
+        branch = data.get('branch')
+        
+        if not status or not branch:
+            return jsonify({'error': 'Status and branch required'}), 400
+        
+        path = os.path.join(UPLOAD_FOLDER, 'temp_data.csv')
+        if not os.path.exists(path):
+            return jsonify({'error': 'Upload file first'}), 400
+        
+        df = pd.read_csv(path)
+        df = clean_dataframe_for_json(df)
+        
+        gc = get_google_sheets_client()
+        if not gc:
+            return jsonify({'error': 'Google auth failed'}), 500
+        
+        if status not in SHEET_IDS:
+            return jsonify({'error': 'Invalid status'}), 400
+        
+        spreadsheet = gc.open_by_key(SHEET_IDS[status])
+        ws_name = normalize_sheet_name(branch)
+        
+        ws = None
+        for worksheet in spreadsheet.worksheets():
+            if worksheet.title.lower() == ws_name.lower():
+                ws = worksheet
+                break
+        
+        if not ws:
+            return jsonify({'error': f'Worksheet {branch} not found'}), 404
+        
+        existing_bill_nos = get_existing_bill_nos(ws)
+        
+        branch_df = df[(df["order status"] == status) & (df["Branch Name"] == branch)]
+        branch_df = branch_df.copy()
+        branch_df["Bill No"] = branch_df["Bill No"].astype(str).str.strip()
+        branch_df = branch_df[branch_df["Bill No"] != ""]
+        
+        existing_bill_nos_clean = {str(bill).strip() for bill in existing_bill_nos if str(bill).strip()}
+        
+        new_bills = []
+        duplicate_bills = []
+        
+        for idx, row in branch_df.iterrows():
+            bill_no = str(row["Bill No"]).strip()
+            if bill_no in existing_bill_nos_clean:
+                duplicate_bills.append(bill_no)
+            else:
+                new_bills.append(bill_no)
+        
+        return jsonify({
+            'status': status,
+            'branch': branch,
+            'total_in_upload': len(branch_df),
+            'total_in_sheet': len(existing_bill_nos_clean),
+            'new_bills_count': len(new_bills),
+            'duplicate_bills_count': len(duplicate_bills),
+            'new_bills_sample': new_bills[:10],
+            'duplicate_bills_sample': duplicate_bills[:10]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===============================
+# CLEANUP ROUTINE
 # ===============================
 @app.route('/cleanup', methods=['POST'])
 def cleanup():
     """Clean up temporary files"""
     try:
-        # Clean upload folder
         for file in os.listdir(UPLOAD_FOLDER):
             file_path = os.path.join(UPLOAD_FOLDER, file)
             if os.path.isfile(file_path):
                 os.remove(file_path)
         
-        # Clean zip folder (older than 1 hour)
         for file in os.listdir(ZIP_FOLDER):
             file_path = os.path.join(ZIP_FOLDER, file)
             if os.path.isfile(file_path):
                 file_age = time.time() - os.path.getmtime(file_path)
-                if file_age > 3600:  # 1 hour
+                if file_age > 3600:
                     os.remove(file_path)
         
         return jsonify({'success': True, 'message': 'Cleanup completed'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+    
+    ###########
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
