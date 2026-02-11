@@ -463,8 +463,84 @@ def upload_file():
 
         df = clean_dataframe_for_json(df)
         
-        # Check for duplicates in uploaded data
-        df, duplicates_removed = validate_bill_no_uniqueness(df)
+        # Clean Bill No column
+        df["Bill No"] = df["Bill No"].astype(str).str.strip()
+        df = df[df["Bill No"] != ""]
+        
+        # Check for duplicates WITHIN the uploaded file
+        df, internal_duplicates_removed = validate_bill_no_uniqueness(df)
+        
+        # Now check for duplicates AGAINST Google Sheets
+        gc = get_google_sheets_client()
+        duplicates_in_google_sheets = {}
+        total_duplicates_with_gs = 0
+        
+        if gc:
+            # Group data by status
+            for status in STATUSES:
+                if status not in SHEET_IDS:
+                    continue
+                    
+                status_df = df[df["order status"] == status]
+                if status_df.empty:
+                    continue
+                
+                try:
+                    spreadsheet = gc.open_by_key(SHEET_IDS[status])
+                    all_worksheets = spreadsheet.worksheets()
+                    
+                    for branch, branch_df in status_df.groupby("Branch Name"):
+                        ws_name = normalize_sheet_name(branch)
+                        
+                        # Find worksheet
+                        ws = None
+                        for worksheet in all_worksheets:
+                            if worksheet.title.lower() == ws_name.lower():
+                                ws = worksheet
+                                break
+                        
+                        if ws:
+                            # Get existing bill numbers from Google Sheets
+                            existing_bill_nos = get_existing_bill_nos(ws)
+                            existing_bill_nos_clean = {str(bill).strip() for bill in existing_bill_nos if str(bill).strip()}
+                            
+                            # Find duplicates
+                            duplicate_bills_in_branch = []
+                            for bill_no in branch_df["Bill No"]:
+                                if str(bill_no).strip() in existing_bill_nos_clean:
+                                    duplicate_bills_in_branch.append(str(bill_no))
+                            
+                            if duplicate_bills_in_branch:
+                                if status not in duplicates_in_google_sheets:
+                                    duplicates_in_google_sheets[status] = {}
+                                if branch not in duplicates_in_google_sheets[status]:
+                                    duplicates_in_google_sheets[status][branch] = []
+                                duplicates_in_google_sheets[status][branch].extend(duplicate_bills_in_branch)
+                                total_duplicates_with_gs += len(duplicate_bills_in_branch)
+                
+                except Exception as e:
+                    print(f"Error checking Google Sheets for {status}: {e}")
+                    continue
+        
+        # Remove duplicates with Google Sheets from the dataframe
+        if total_duplicates_with_gs > 0:
+            # Create a mask for rows that are NOT duplicates with Google Sheets
+            mask = pd.Series([True] * len(df), index=df.index)
+            
+            for status, branches in duplicates_in_google_sheets.items():
+                for branch, bill_nos in branches.items():
+                    condition = (
+                        (df["order status"] == status) & 
+                        (df["Branch Name"] == branch) & 
+                        (df["Bill No"].isin(bill_nos))
+                    )
+                    mask = mask & ~condition
+            
+            df_filtered = df[mask].copy()
+            gs_duplicates_removed = len(df) - len(df_filtered)
+            df = df_filtered
+        else:
+            gs_duplicates_removed = 0
         
         # Save cleaned data
         df.to_csv(os.path.join(UPLOAD_FOLDER, 'temp_data.csv'), index=False)
@@ -472,14 +548,22 @@ def upload_file():
         df_json = df.head(10).to_dict(orient='records')
         df_json = convert_numpy_to_python(df_json)
         
+        duplicate_message = ""
+        if internal_duplicates_removed > 0 or gs_duplicates_removed > 0:
+            duplicate_message = f"Removed {internal_duplicates_removed} duplicate rows within file and {gs_duplicates_removed} rows already in Google Sheets"
+        
         return jsonify({
             'success': True, 
             'rows': len(df),
             'preview': df_json,
             'columns': list(df.columns),
             'duplicate_info': {
-                'duplicates_removed': int(duplicates_removed),
-                'unique_rows_remaining': int(len(df))
+                'internal_duplicates_removed': int(internal_duplicates_removed),
+                'google_sheets_duplicates_removed': int(gs_duplicates_removed),
+                'total_duplicates_removed': int(internal_duplicates_removed + gs_duplicates_removed),
+                'unique_rows_remaining': int(len(df)),
+                'message': duplicate_message,
+                'duplicates_by_status': convert_numpy_to_python(duplicates_in_google_sheets)
             }
         })
 
@@ -502,6 +586,7 @@ def process_data():
         df = clean_dataframe_for_json(df)
         
         if option == 'google_sheets':
+            # This will now only process the already-filtered data
             return update_google_sheets()
             
         elif option == 'download_zip':
@@ -1034,8 +1119,6 @@ def cleanup():
         return jsonify({'success': True, 'message': 'Cleanup completed'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-    ###########
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
