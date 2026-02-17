@@ -132,16 +132,26 @@ def get_google_sheets_client():
         return None
 
 # ===============================
-# HELPER FUNCTIONS FOR GOOGLE SHEETS
+# UPDATED: HELPER FUNCTIONS FOR GOOGLE SHEETS
 # ===============================
 def clean_bill_number(bill_no):
-    """Clean and standardize bill number format"""
+    """Clean and standardize bill number format - REMOVES ALL SPACES and STANDARDIZES"""
     if pd.isna(bill_no):
         return ""
+    
+    # Convert to string and strip whitespace
     bill_no = str(bill_no).strip()
+    
     # Remove .0 if present
     if bill_no.endswith('.0'):
         bill_no = bill_no[:-2]
+    
+    # Remove ALL whitespace (including spaces in the middle)
+    bill_no = ''.join(bill_no.split())
+    
+    # Convert to uppercase for consistency
+    bill_no = bill_no.upper()
+    
     return bill_no
 
 def find_empty_row_for_append(worksheet):
@@ -160,18 +170,19 @@ def find_empty_row_for_append(worksheet):
         return 2
 
 def get_existing_bill_nos(worksheet):
-    """Get all existing bill numbers from the worksheet"""
+    """Get all existing bill numbers from the worksheet with improved cleaning"""
     bill_nos = set()
     try:
         all_values = worksheet.get_all_values()
         
         for row in all_values:
             if len(row) > 2:
-                bill_no = row[2]
+                bill_no = row[2]  # Column C (index 2)
                 if bill_no and str(bill_no).strip():
+                    # Apply the improved cleaning function
                     bill_no = clean_bill_number(bill_no)
                     # Skip headers
-                    if bill_no and not bill_no.startswith("Bill No") and not bill_no.startswith("S No") and bill_no != "" and bill_no != "TOTAL":
+                    if bill_no and not bill_no.startswith("BILLNO") and not bill_no.startswith("SNO") and bill_no != "" and bill_no != "TOTAL":
                         bill_nos.add(bill_no)
         return bill_nos
     except Exception as e:
@@ -263,7 +274,7 @@ def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
         # Add ID (if exists in data)
         row_data.append(row.get("Id", ""))
         
-        # Add Bill No
+        # Add Bill No - use improved cleaning
         row_data.append(clean_bill_number(row.get("Bill No", "")))
         
         # Add Branch Name
@@ -277,7 +288,7 @@ def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
         if pd.isna(bill_date):
             bill_date = ""
         elif isinstance(bill_date, (pd.Timestamp, datetime)):
-            bill_date = bill_date.strftime('%Y-%m-%d')
+            bill_date = bill_date.strftime('%d-%m-%y')
         row_data.append(str(bill_date))
         
         # Add Total Bill Amount
@@ -474,7 +485,7 @@ def upload_file():
 
         df = clean_dataframe_for_json(df)
         
-        # Clean Bill No column
+        # Clean Bill No column with improved function
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
@@ -512,15 +523,14 @@ def upload_file():
                                 break
                         
                         if ws:
-                            # Get existing bill numbers from Google Sheets
+                            # Get existing bill numbers from Google Sheets using improved function
                             existing_bill_nos = get_existing_bill_nos(ws)
-                            existing_bill_nos_clean = {clean_bill_number(bill) for bill in existing_bill_nos}
                             
                             # Find duplicates
                             duplicate_bills_in_branch = []
                             for bill_no in branch_df["Bill No"]:
                                 bill_no_clean = clean_bill_number(bill_no)
-                                if bill_no_clean in existing_bill_nos_clean:
+                                if bill_no_clean in existing_bill_nos:
                                     duplicate_bills_in_branch.append(bill_no_clean)
                             
                             if duplicate_bills_in_branch:
@@ -715,16 +725,17 @@ def update_google_sheets():
                 # Get ALL values from the worksheet for fresh read every time
                 all_values = ws.get_all_values()
                 
-                # Extract all bill numbers from column C (index 2)
+                # Extract all bill numbers from column C (index 2) with improved cleaning
                 existing_bill_nos = set()
                 
                 for row in all_values:
                     if len(row) > 2:
-                        bill_no = row[2]
+                        bill_no = row[2]  # Column C
                         if bill_no and str(bill_no).strip():
+                            # Use improved cleaning function
                             bill_no_clean = clean_bill_number(bill_no)
                             # Skip headers
-                            if bill_no_clean and not bill_no_clean.startswith("Bill No") and not bill_no_clean.startswith("S No") and bill_no_clean != "" and bill_no_clean != "TOTAL":
+                            if bill_no_clean and not bill_no_clean.startswith("BILLNO") and not bill_no_clean.startswith("SNO") and bill_no_clean != "" and bill_no_clean != "TOTAL":
                                 existing_bill_nos.add(bill_no_clean)
                 
                 print(f"📊 Worksheet '{ws.title}' has {len(existing_bill_nos)} existing unique bill numbers")
@@ -734,7 +745,7 @@ def update_google_sheets():
                 # ============ CLEAN UPLOADED DATA ============
                 branch_df = branch_df.copy()
                 
-                # Clean Bill No column
+                # Clean Bill No column with improved function
                 branch_df["Bill No"] = branch_df["Bill No"].apply(clean_bill_number)
                 
                 # Remove invalid bill numbers
@@ -988,7 +999,7 @@ def check_duplicates():
         df = pd.read_csv(path)
         df = clean_dataframe_for_json(df)
         
-        # Clean Bill No column
+        # Clean Bill No column with improved function
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
@@ -1058,7 +1069,7 @@ def debug_worksheet(status, branch):
         for row in all_values:
             if len(row) > 2:
                 bill_no = clean_bill_number(row[2])
-                if bill_no and not bill_no.startswith("Bill No") and not bill_no.startswith("S No") and bill_no != "" and bill_no != "TOTAL":
+                if bill_no and not bill_no.startswith("BILLNO") and not bill_no.startswith("SNO") and bill_no != "" and bill_no != "TOTAL":
                     bill_numbers.append(bill_no)
         
         duplicates = []
@@ -1123,6 +1134,7 @@ def compare_bills():
         if not ws:
             return jsonify({'error': f'Worksheet {branch} not found'}), 404
         
+        # Use improved get_existing_bill_nos function
         existing_bill_nos = get_existing_bill_nos(ws)
         
         branch_df = df[(df["order status"] == status) & (df["Branch Name"] == branch)]
@@ -1131,14 +1143,12 @@ def compare_bills():
         branch_df = branch_df[branch_df["Bill No"] != ""]
         branch_df = branch_df[branch_df["Bill No"] != "nan"]
         
-        existing_bill_nos_clean = {clean_bill_number(bill) for bill in existing_bill_nos}
-        
         new_bills = []
         duplicate_bills = []
         
         for idx, row in branch_df.iterrows():
             bill_no = clean_bill_number(row["Bill No"])
-            if bill_no in existing_bill_nos_clean:
+            if bill_no in existing_bill_nos:
                 duplicate_bills.append(bill_no)
             else:
                 new_bills.append(bill_no)
@@ -1147,7 +1157,7 @@ def compare_bills():
             'status': status,
             'branch': branch,
             'total_in_upload': len(branch_df),
-            'total_in_sheet': len(existing_bill_nos_clean),
+            'total_in_sheet': len(existing_bill_nos),
             'new_bills_count': len(new_bills),
             'duplicate_bills_count': len(duplicate_bills),
             'new_bills_sample': new_bills[:10],
