@@ -169,47 +169,59 @@ def find_empty_row_for_append(worksheet):
         print(f"Error finding empty row: {e}")
         return 2
 
-def get_existing_bill_nos(worksheet):
-    """Get all existing bill numbers from the worksheet with improved cleaning"""
-    bill_nos = set()
+def get_existing_records(worksheet):
+    """Get all existing (bill_no, status) combinations from the worksheet"""
+    records = set()
     try:
         all_values = worksheet.get_all_values()
         
         for row in all_values:
-            if len(row) > 2:
+            if len(row) > 17:  # Need at least up to column R (order status)
                 bill_no = row[2]  # Column C (index 2)
-                if bill_no and str(bill_no).strip():
-                    # Apply the improved cleaning function
-                    bill_no = clean_bill_number(bill_no)
+                status = row[17]  # Column R (index 17) - order status
+                
+                if bill_no and str(bill_no).strip() and status and str(status).strip():
+                    # Apply cleaning to bill number
+                    bill_no_clean = clean_bill_number(bill_no)
+                    status_clean = str(status).strip()
+                    
                     # Skip headers
-                    if bill_no and not bill_no.startswith("BILLNO") and not bill_no.startswith("SNO") and bill_no != "" and bill_no != "TOTAL":
-                        bill_nos.add(bill_no)
-        return bill_nos
+                    if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and 
+                        not bill_no_clean.startswith("SNO") and 
+                        bill_no_clean != "" and bill_no_clean != "TOTAL" and
+                        status_clean and status_clean != ""):
+                        records.add((bill_no_clean, status_clean))
+        
+        return records
     except Exception as e:
-        print(f"Error getting existing bill numbers: {e}")
+        print(f"Error getting existing records: {e}")
         return set()
 
 def validate_bill_no_uniqueness(df):
-    """Validate that Bill No is unique in the uploaded data itself"""
+    """Validate that Bill No + Status combination is unique in the uploaded data itself"""
     try:
         # Clean Bill No column
         df = df.copy()
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
+        df["order status"] = df["order status"].apply(lambda x: str(x).strip())
         
         # Remove empty bill numbers
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
+        df = df[df["order status"] != ""]
         
-        # Check for duplicates in uploaded data
-        duplicates_in_upload = df[df.duplicated(subset=['Bill No'], keep=False)]
+        # Check for duplicates based on Bill No + Status combination
+        duplicates_in_upload = df[df.duplicated(subset=['Bill No', 'order status'], keep=False)]
         
         if not duplicates_in_upload.empty:
-            print(f"⚠️  Found {len(duplicates_in_upload)} duplicate Bill Nos in uploaded data")
-            duplicate_counts = duplicates_in_upload['Bill No'].value_counts()
-            print(f"🔍 Most common duplicates: {duplicate_counts.head(5).to_dict()}")
+            print(f"⚠️  Found {len(duplicates_in_upload)} duplicate (Bill No + Status) combinations in uploaded data")
             
-            # Remove duplicates within uploaded data (keep first occurrence)
-            df_unique = df.drop_duplicates(subset=['Bill No'], keep='first')
+            # Group by combination to show counts
+            combo_counts = duplicates_in_upload.groupby(['Bill No', 'order status']).size()
+            print(f"🔍 Duplicate combinations: {combo_counts.to_dict()}")
+            
+            # Remove duplicates (keep first occurrence of each Bill No+Status combo)
+            df_unique = df.drop_duplicates(subset=['Bill No', 'order status'], keep='first')
             removed_count = len(df) - len(df_unique)
             print(f"🗑️  Removed {removed_count} duplicate rows from uploaded data")
             
@@ -487,13 +499,15 @@ def upload_file():
         
         # Clean Bill No column with improved function
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
+        df["order status"] = df["order status"].apply(lambda x: str(x).strip())
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
+        df = df[df["order status"] != ""]
         
-        # Check for duplicates WITHIN the uploaded file
+        # Check for duplicates WITHIN the uploaded file (based on Bill No + Status)
         df, internal_duplicates_removed = validate_bill_no_uniqueness(df)
         
-        # Now check for duplicates AGAINST Google Sheets
+        # Now check for duplicates AGAINST Google Sheets (based on Bill No + Status)
         gc = get_google_sheets_client()
         duplicates_in_google_sheets = {}
         total_duplicates_with_gs = 0
@@ -523,23 +537,24 @@ def upload_file():
                                 break
                         
                         if ws:
-                            # Get existing bill numbers from Google Sheets using improved function
-                            existing_bill_nos = get_existing_bill_nos(ws)
+                            # Get existing records (bill_no, status) from Google Sheets
+                            existing_records = get_existing_records(ws)
                             
                             # Find duplicates
-                            duplicate_bills_in_branch = []
-                            for bill_no in branch_df["Bill No"]:
-                                bill_no_clean = clean_bill_number(bill_no)
-                                if bill_no_clean in existing_bill_nos:
-                                    duplicate_bills_in_branch.append(bill_no_clean)
+                            duplicate_records_in_branch = []
+                            for _, row in branch_df.iterrows():
+                                bill_no_clean = clean_bill_number(row["Bill No"])
+                                status_clean = str(row["order status"]).strip()
+                                if (bill_no_clean, status_clean) in existing_records:
+                                    duplicate_records_in_branch.append(bill_no_clean)
                             
-                            if duplicate_bills_in_branch:
+                            if duplicate_records_in_branch:
                                 if status not in duplicates_in_google_sheets:
                                     duplicates_in_google_sheets[status] = {}
                                 if branch not in duplicates_in_google_sheets[status]:
                                     duplicates_in_google_sheets[status][branch] = []
-                                duplicates_in_google_sheets[status][branch].extend(duplicate_bills_in_branch)
-                                total_duplicates_with_gs += len(duplicate_bills_in_branch)
+                                duplicates_in_google_sheets[status][branch].extend(duplicate_records_in_branch)
+                                total_duplicates_with_gs += len(duplicate_records_in_branch)
                 
                 except Exception as e:
                     print(f"Error checking Google Sheets for {status}: {e}")
@@ -552,6 +567,7 @@ def upload_file():
             
             for status, branches in duplicates_in_google_sheets.items():
                 for branch, bill_nos in branches.items():
+                    # Create condition for each duplicate row
                     condition = (
                         (df["order status"] == status) & 
                         (df["Branch Name"] == branch) & 
@@ -661,8 +677,8 @@ def update_google_sheets():
         batch_size = 5
         processed_count = 0
         
-        # Track processed bill numbers in this run to prevent duplicates within the same session
-        processed_bill_nos_this_run = set()
+        # Track processed (bill_no, status) combinations in this run
+        processed_combos_this_run = set()
         
         # Group data by status first
         for status in STATUSES:
@@ -721,60 +737,71 @@ def update_google_sheets():
                         print(f"❌ Error creating worksheet: {e}")
                         continue
                 
-                # ============ GET ALL EXISTING BILL NUMBERS ============
+                # ============ GET ALL EXISTING RECORDS ============
                 # Get ALL values from the worksheet for fresh read every time
                 all_values = ws.get_all_values()
                 
-                # Extract all bill numbers from column C (index 2) with improved cleaning
-                existing_bill_nos = set()
+                # Extract all (bill_no, status) combinations
+                existing_records = set()
                 
                 for row in all_values:
-                    if len(row) > 2:
+                    if len(row) > 17:  # Need at least up to column R
                         bill_no = row[2]  # Column C
-                        if bill_no and str(bill_no).strip():
-                            # Use improved cleaning function
+                        status_val = row[17] if len(row) > 17 else ""  # Column R
+                        
+                        if bill_no and str(bill_no).strip() and status_val and str(status_val).strip():
                             bill_no_clean = clean_bill_number(bill_no)
+                            status_clean = str(status_val).strip()
+                            
                             # Skip headers
-                            if bill_no_clean and not bill_no_clean.startswith("BILLNO") and not bill_no_clean.startswith("SNO") and bill_no_clean != "" and bill_no_clean != "TOTAL":
-                                existing_bill_nos.add(bill_no_clean)
+                            if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and 
+                                not bill_no_clean.startswith("SNO") and 
+                                bill_no_clean != "" and bill_no_clean != "TOTAL" and
+                                status_clean and status_clean != ""):
+                                existing_records.add((bill_no_clean, status_clean))
                 
-                print(f"📊 Worksheet '{ws.title}' has {len(existing_bill_nos)} existing unique bill numbers")
-                if len(existing_bill_nos) > 0:
-                    print(f"📊 Sample: {list(existing_bill_nos)[:5]}")
+                print(f"📊 Worksheet '{ws.title}' has {len(existing_records)} existing unique (bill_no, status) combinations")
+                if len(existing_records) > 0:
+                    print(f"📊 Sample: {list(existing_records)[:5]}")
                 
                 # ============ CLEAN UPLOADED DATA ============
                 branch_df = branch_df.copy()
                 
                 # Clean Bill No column with improved function
                 branch_df["Bill No"] = branch_df["Bill No"].apply(clean_bill_number)
+                branch_df["order status"] = branch_df["order status"].apply(lambda x: str(x).strip())
                 
-                # Remove invalid bill numbers
+                # Remove invalid records
                 branch_df = branch_df[branch_df["Bill No"] != ""]
                 branch_df = branch_df[branch_df["Bill No"] != "nan"]
+                branch_df = branch_df[branch_df["order status"] != ""]
                 
                 print(f"🔍 Branch: {branch}, Total records in upload: {len(branch_df)}")
                 
                 # ============ REMOVE DUPLICATES WITHIN UPLOAD ============
-                dup_in_upload = branch_df[branch_df.duplicated(subset=['Bill No'], keep=False)]
+                dup_in_upload = branch_df[branch_df.duplicated(subset=['Bill No', 'order status'], keep=False)]
                 if not dup_in_upload.empty:
-                    print(f"⚠️  Found {len(dup_in_upload)} duplicate bill numbers WITHIN uploaded data for {branch}")
-                    branch_df = branch_df.drop_duplicates(subset=['Bill No'], keep='first')
+                    print(f"⚠️  Found {len(dup_in_upload)} duplicate (bill_no, status) combinations WITHIN uploaded data for {branch}")
+                    branch_df = branch_df.drop_duplicates(subset=['Bill No', 'order status'], keep='first')
                     print(f"✅ After removing internal duplicates: {len(branch_df)} records")
                 
-                # ============ FILTER OUT ALREADY EXISTING BILLS ============
-                # First, filter out bills that already exist in the Google Sheet
-                new_bills_mask = ~branch_df["Bill No"].isin(existing_bill_nos)
-                new_data = branch_df[new_bills_mask].copy()
+                # ============ FILTER OUT ALREADY EXISTING RECORDS ============
+                # Create a list of (bill_no, status) tuples for filtering
+                branch_df['combo'] = list(zip(branch_df["Bill No"], branch_df["order status"]))
                 
-                # Also filter out bills we've already processed in this same run
-                if processed_bill_nos_this_run:
-                    not_processed_this_run_mask = ~new_data["Bill No"].isin(processed_bill_nos_this_run)
+                # First, filter out records that already exist in the Google Sheet
+                new_records_mask = ~branch_df['combo'].isin(existing_records)
+                new_data = branch_df[new_records_mask].copy()
+                
+                # Also filter out records we've already processed in this same run
+                if processed_combos_this_run:
+                    not_processed_this_run_mask = ~new_data['combo'].isin(processed_combos_this_run)
                     new_data = new_data[not_processed_this_run_mask].copy()
                 
                 # Calculate stats
                 total_in_upload = len(branch_df)
-                duplicates_with_gs = len(branch_df[~new_bills_mask])
-                duplicates_this_run = len(set(branch_df["Bill No"]) & processed_bill_nos_this_run) if processed_bill_nos_this_run else 0
+                duplicates_with_gs = len(branch_df[~new_records_mask])
+                duplicates_this_run = len(set(branch_df['combo']) & processed_combos_this_run) if processed_combos_this_run else 0
                 new_rows = len(new_data)
                 
                 print(f"🔍 Duplicate breakdown for {branch}:")
@@ -785,7 +812,14 @@ def update_google_sheets():
                 
                 if new_rows == 0:
                     print(f"⏭️  No new data for {branch}")
+                    # Drop the combo column before continuing
+                    branch_df = branch_df.drop('combo', axis=1, errors='ignore')
+                    new_data = new_data.drop('combo', axis=1, errors='ignore')
                     continue
+                
+                # Drop the combo column before further processing
+                branch_df = branch_df.drop('combo', axis=1, errors='ignore')
+                new_data = new_data.drop('combo', axis=1, errors='ignore')
                 
                 # ============ FIND CORRECT SERIAL NUMBER ============
                 # Find the highest serial number in the sheet
@@ -862,6 +896,10 @@ def update_google_sheets():
                         row_data.append(str(val) if not pd.isna(val) else "")
                     
                     data_to_append.append(row_data)
+                    
+                    # Add this combo to processed set
+                    combo = (clean_bill_number(row.get("Bill No", "")), str(row.get("order status", "")).strip())
+                    processed_combos_this_run.add(combo)
                 
                 # Add empty row
                 data_to_append.append([""] * 20)
@@ -891,10 +929,6 @@ def update_google_sheets():
                     # Update the sheet
                     ws.update(full_range, data_to_append, value_input_option='USER_ENTERED')
                     
-                    # Add these bill numbers to the processed set for this run
-                    for bill_no in new_data["Bill No"]:
-                        processed_bill_nos_this_run.add(bill_no)
-                    
                     print(f"✅ Successfully added {len(new_data)} rows to {ws.title}")
                     
                     # Update summary
@@ -913,10 +947,6 @@ def update_google_sheets():
                     try:
                         ws.update(full_range, data_to_append, value_input_option='USER_ENTERED')
                         print(f"✅ Retry successful for {ws.title}")
-                        
-                        # Add to processed set on retry success
-                        for bill_no in new_data["Bill No"]:
-                            processed_bill_nos_this_run.add(bill_no)
                         
                         rows_added = len(new_data)
                         total_rows_updated += rows_added
@@ -1001,26 +1031,28 @@ def check_duplicates():
         
         # Clean Bill No column with improved function
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
+        df["order status"] = df["order status"].apply(lambda x: str(x).strip())
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
+        df = df[df["order status"] != ""]
         
-        # Check for duplicates
-        duplicate_df = df[df.duplicated(subset=['Bill No'], keep=False)]
+        # Check for duplicates based on Bill No + Status
+        duplicate_df = df[df.duplicated(subset=['Bill No', 'order status'], keep=False)]
         
         if duplicate_df.empty:
             return jsonify({
                 'has_duplicates': False,
-                'message': 'No duplicate Bill Nos found in uploaded data'
+                'message': 'No duplicate (Bill No + Status) combinations found in uploaded data'
             })
         
         # Group duplicates
         duplicates_summary = []
-        for bill_no, group in duplicate_df.groupby('Bill No'):
+        for (bill_no, status), group in duplicate_df.groupby(['Bill No', 'order status']):
             duplicates_summary.append({
                 'bill_no': str(bill_no),
+                'status': str(status),
                 'count': int(len(group)),
-                'branches': group['Branch Name'].unique().tolist(),
-                'statuses': group['order status'].unique().tolist()
+                'branches': group['Branch Name'].unique().tolist()
             })
         
         # Sort by count descending
@@ -1028,10 +1060,10 @@ def check_duplicates():
         
         return jsonify({
             'has_duplicates': True,
-            'total_duplicate_bills': len(duplicate_df['Bill No'].unique()),
+            'total_duplicate_combinations': len(duplicate_df.groupby(['Bill No', 'order status']).size()),
             'total_duplicate_rows': len(duplicate_df),
             'duplicates': duplicates_summary[:20],
-            'message': f'Found {len(duplicate_df)} duplicate rows across {len(duplicate_df["Bill No"].unique())} bill numbers'
+            'message': f'Found {len(duplicate_df)} duplicate rows across {len(duplicate_df.groupby(["Bill No", "order status"]))} unique combinations'
         })
         
     except Exception as e:
@@ -1065,30 +1097,32 @@ def debug_worksheet(status, branch):
         
         all_values = ws.get_all_values()
         
-        bill_numbers = []
+        records = []
         for row in all_values:
-            if len(row) > 2:
-                bill_no = clean_bill_number(row[2])
-                if bill_no and not bill_no.startswith("BILLNO") and not bill_no.startswith("SNO") and bill_no != "" and bill_no != "TOTAL":
-                    bill_numbers.append(bill_no)
+            if len(row) > 17:
+                bill_no = clean_bill_number(row[2]) if len(row) > 2 else ""
+                status_val = row[17] if len(row) > 17 else ""
+                if bill_no and status_val and not bill_no.startswith("BILLNO") and not bill_no.startswith("SNO") and bill_no != "TOTAL":
+                    records.append((bill_no, status_val))
         
-        duplicates = []
+        # Find duplicates
         seen = set()
-        for bill in bill_numbers:
-            if bill in seen:
-                duplicates.append(bill)
+        duplicates = []
+        for record in records:
+            if record in seen:
+                duplicates.append(record)
             else:
-                seen.add(bill)
+                seen.add(record)
         
         return jsonify({
             'worksheet': ws.title,
             'status': status,
             'total_rows': len(all_values),
-            'total_bill_numbers': len(bill_numbers),
-            'unique_bill_numbers': len(seen),
+            'total_records': len(records),
+            'unique_records': len(seen),
             'duplicates_found': len(duplicates),
             'duplicate_list': duplicates[:20],
-            'sample_bill_numbers': list(seen)[:10]
+            'sample_records': list(seen)[:10]
         })
         
     except Exception as e:
@@ -1134,34 +1168,37 @@ def compare_bills():
         if not ws:
             return jsonify({'error': f'Worksheet {branch} not found'}), 404
         
-        # Use improved get_existing_bill_nos function
-        existing_bill_nos = get_existing_bill_nos(ws)
+        # Get existing records from Google Sheets
+        existing_records = get_existing_records(ws)
         
         branch_df = df[(df["order status"] == status) & (df["Branch Name"] == branch)]
         branch_df = branch_df.copy()
         branch_df["Bill No"] = branch_df["Bill No"].apply(clean_bill_number)
+        branch_df["order status"] = branch_df["order status"].apply(lambda x: str(x).strip())
         branch_df = branch_df[branch_df["Bill No"] != ""]
         branch_df = branch_df[branch_df["Bill No"] != "nan"]
+        branch_df = branch_df[branch_df["order status"] != ""]
         
-        new_bills = []
-        duplicate_bills = []
+        new_records = []
+        duplicate_records = []
         
-        for idx, row in branch_df.iterrows():
+        for _, row in branch_df.iterrows():
             bill_no = clean_bill_number(row["Bill No"])
-            if bill_no in existing_bill_nos:
-                duplicate_bills.append(bill_no)
+            status_val = str(row["order status"]).strip()
+            if (bill_no, status_val) in existing_records:
+                duplicate_records.append((bill_no, status_val))
             else:
-                new_bills.append(bill_no)
+                new_records.append((bill_no, status_val))
         
         return jsonify({
             'status': status,
             'branch': branch,
             'total_in_upload': len(branch_df),
-            'total_in_sheet': len(existing_bill_nos),
-            'new_bills_count': len(new_bills),
-            'duplicate_bills_count': len(duplicate_bills),
-            'new_bills_sample': new_bills[:10],
-            'duplicate_bills_sample': duplicate_bills[:10]
+            'total_in_sheet': len(existing_records),
+            'new_records_count': len(new_records),
+            'duplicate_records_count': len(duplicate_records),
+            'new_records_sample': new_records[:10],
+            'duplicate_records_sample': duplicate_records[:10]
         })
         
     except Exception as e:
