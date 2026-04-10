@@ -95,13 +95,13 @@ def clean_dataframe_for_json(df):
     df = df.copy()
     df.replace([float("inf"), float("-inf")], "", inplace=True)
     df.fillna("", inplace=True)
-    
+ 
     for col in df.columns:
         if df[col].dtype == 'int64':
             df[col] = df[col].astype('Int64')
         elif df[col].dtype == 'float64':
             df[col] = df[col].astype('float')
-    
+ 
     return df
 
 # ===============================
@@ -151,32 +151,32 @@ def clean_bill_number(bill_no):
     """Clean and standardize bill number format - REMOVES ALL SPACES and STANDARDIZES"""
     if pd.isna(bill_no):
         return ""
-    
+ 
     # Convert to string and strip whitespace
     bill_no = str(bill_no).strip()
-    
+ 
     # Remove .0 if present
     if bill_no.endswith('.0'):
         bill_no = bill_no[:-2]
-    
+ 
     # Remove ALL whitespace (including spaces in the middle)
     bill_no = ''.join(bill_no.split())
-    
+ 
     # Convert to uppercase for consistency
     bill_no = bill_no.upper()
-    
+ 
     return bill_no
 
 def find_empty_row_for_append(worksheet):
     """Find the first empty row to append data"""
     try:
         all_values = worksheet.get_all_values()
-        
+ 
         last_row = 0
         for i, row in enumerate(all_values, start=1):
             if any(cell and str(cell).strip() for cell in row):
                 last_row = i
-        
+ 
         return last_row + 1
     except Exception as e:
         print(f"Error finding empty row: {e}")
@@ -187,24 +187,24 @@ def get_existing_records(worksheet):
     records = set()
     try:
         all_values = worksheet.get_all_values()
-        
+ 
         for row in all_values:
             if len(row) > 17:  # Need at least up to column R (order status)
                 bill_no = row[2]  # Column C (index 2)
                 status = row[17]  # Column R (index 17) - order status
-                
+ 
                 if bill_no and str(bill_no).strip() and status and str(status).strip():
                     # Apply cleaning to bill number
                     bill_no_clean = clean_bill_number(bill_no)
                     status_clean = str(status).strip()
-                    
+ 
                     # Skip headers
-                    if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and 
-                        not bill_no_clean.startswith("SNO") and 
+                    if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and
+                        not bill_no_clean.startswith("SNO") and
                         bill_no_clean != "" and bill_no_clean != "TOTAL" and
                         status_clean and status_clean != ""):
                         records.add((bill_no_clean, status_clean))
-        
+ 
         return records
     except Exception as e:
         print(f"Error getting existing records: {e}")
@@ -215,20 +215,20 @@ def get_existing_bills_from_summary(worksheet):
     records = set()
     try:
         all_values = worksheet.get_all_values()
-        
+ 
         for row in all_values:
             if len(row) > 1:
                 bill_no = row[1]  # Column B (index 1) - Bill No
-                
+ 
                 if bill_no and str(bill_no).strip():
                     bill_no_clean = clean_bill_number(bill_no)
-                    
+ 
                     # Skip headers
-                    if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and 
-                        not bill_no_clean.startswith("SNO") and 
+                    if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and
+                        not bill_no_clean.startswith("SNO") and
                         bill_no_clean != "" and bill_no_clean != "TOTAL"):
                         records.add(bill_no_clean)
-        
+ 
         return records
     except Exception as e:
         print(f"Error getting existing bills from summary: {e}")
@@ -241,32 +241,32 @@ def validate_bill_no_uniqueness(df):
         df = df.copy()
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
         df["order status"] = df["order status"].apply(lambda x: str(x).strip())
-        
+ 
         # Remove empty bill numbers
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
         df = df[df["order status"] != ""]
-        
+ 
         # Check for duplicates based on Bill No + Status combination
         duplicates_in_upload = df[df.duplicated(subset=['Bill No', 'order status'], keep=False)]
-        
+ 
         if not duplicates_in_upload.empty:
             print(f"⚠️  Found {len(duplicates_in_upload)} duplicate (Bill No + Status) combinations in uploaded data")
-            
+ 
             # Group by combination to show counts
             combo_counts = duplicates_in_upload.groupby(['Bill No', 'order status']).size()
             print(f"🔍 Duplicate combinations: {combo_counts.to_dict()}")
-            
+ 
             # Remove duplicates (keep first occurrence of each Bill No+Status combo)
             df_unique = df.drop_duplicates(subset=['Bill No', 'order status'], keep='first')
             removed_count = len(df) - len(df_unique)
             print(f"🗑️  Removed {removed_count} duplicate rows from uploaded data")
-            
+ 
             return df_unique, removed_count
         else:
             print("✅ No duplicates found within uploaded data")
             return df, 0
-            
+ 
     except Exception as e:
         print(f"Error validating bill number uniqueness: {e}")
         return df, 0
@@ -295,200 +295,6 @@ def normalize_sheet_name(name):
         name = name.replace(char, '_')
     return name[:31]
 
-def prepare_data_for_sheet(new_data, today, current_time, start_serial=1):
-    """Prepare data in the correct format for Google Sheets"""
-    data_to_append = []
-    
-    # Add date separator
-    date_row = [f"Data Saved On: {today} {current_time}"]
-    date_row.extend([""] * 19)
-    data_to_append.append(date_row)
-    
-    # Add column headers
-    headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName", 
-                   "Bill Date", "Total Bill Amount", "Total Discount Amount", 
-                   "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status", 
-                   "Created By", "Created On", "order id", "tracking id", 
-                   "bank ref no", "order status", "payment mode", "card name"]
-    data_to_append.append(headers_list)
-    
-    # Add the actual data rows with proper serial numbers
-    for idx, row in new_data.iterrows():
-        row_data = []
-        serial_no = start_serial + idx
-        
-        # Add serial number
-        row_data.append(serial_no)
-        
-        # Add ID (if exists in data)
-        row_data.append(row.get("Id", ""))
-        
-        # Add Bill No - use improved cleaning
-        row_data.append(clean_bill_number(row.get("Bill No", "")))
-        
-        # Add Branch Name
-        row_data.append(row.get("Branch Name", ""))
-        
-        # Add FinancialYearName (if exists)
-        row_data.append(row.get("FinancialYearName", ""))
-        
-        # Add Bill Date
-        bill_date = row.get("Bill Date", "")
-        if pd.isna(bill_date):
-            bill_date = ""
-        elif isinstance(bill_date, (pd.Timestamp, datetime)):
-            bill_date = bill_date.strftime('%d-%m-%y')
-        row_data.append(str(bill_date))
-        
-        # Add Total Bill Amount
-        total_bill = row.get("Total Bill Amount", 0)
-        row_data.append(float(total_bill) if not pd.isna(total_bill) else 0)
-        
-        # Add Total Discount Amount
-        discount = row.get("Total Discount Amount", 0)
-        row_data.append(float(discount) if not pd.isna(discount) else 0)
-        
-        # Add Total Tax Amount
-        tax = row.get("Total Tax Amount", 0)
-        row_data.append(float(tax) if not pd.isna(tax) else 0)
-        
-        # Add Net Amount
-        net_amount = row.get("Net Amount", 0)
-        row_data.append(float(net_amount) if not pd.isna(net_amount) else 0)
-        
-        # Add remaining columns
-        for col in ["Paid AT", "Bill Status", "Created By", "Created On", 
-                   "order id", "tracking id", "bank ref no", "order status", 
-                   "payment mode", "card name"]:
-            value = row.get(col, "")
-            if pd.isna(value):
-                value = ""
-            row_data.append(str(value))
-        
-        data_to_append.append(row_data)
-    
-    # Add empty row
-    data_to_append.append([""] * 20)
-    
-    # Add totals row
-    if not new_data.empty:
-        totals = ["", "", "TOTAL", "", "", "",
-                 float(new_data["Total Bill Amount"].sum()),
-                 float(new_data["Total Discount Amount"].sum()),
-                 float(new_data["Total Tax Amount"].sum()),
-                 float(new_data["Net Amount"].sum())]
-        totals.extend([""] * 10)
-        data_to_append.append(totals)
-    
-    # Add 3 more empty rows for separation
-    for _ in range(3):
-        data_to_append.append([""] * 20)
-    
-    return data_to_append
-
-def prepare_summary_data_for_sheet(new_data, today, current_time, start_serial=1):
-    """Prepare data with specific columns for summary sheet"""
-    data_to_append = []
-    
-    # Add date separator
-    date_row = [f"Data Saved On: {today} {current_time}"]
-    date_row.extend([""] * 10)  # 10 extra columns for the specific fields
-    data_to_append.append(date_row)
-    
-    # Add column headers (11 columns)
-    headers_list = [
-        "S No", 
-        "Bill No", 
-        "Branch Name", 
-        "Bill Date", 
-        "Total Bill Amount",
-        "Total Discount Amount", 
-        "Total Tax Amount", 
-        "Net Amount", 
-        "Paid AT", 
-        "Created By", 
-        "order id"
-    ]
-    data_to_append.append(headers_list)
-    
-    # Add the actual data rows with proper serial numbers
-    for idx, row in new_data.iterrows():
-        row_data = []
-        serial_no = start_serial + idx
-        
-        # Add serial number
-        row_data.append(serial_no)
-        
-        # Add Bill No - use improved cleaning
-        row_data.append(clean_bill_number(row.get("Bill No", "")))
-        
-        # Add Branch Name
-        row_data.append(row.get("Branch Name", ""))
-        
-        # Add Bill Date
-        bill_date = row.get("Bill Date", "")
-        if pd.isna(bill_date):
-            bill_date = ""
-        elif isinstance(bill_date, (pd.Timestamp, datetime)):
-            bill_date = bill_date.strftime('%Y-%m-%d')
-        row_data.append(str(bill_date))
-        
-        # Add Total Bill Amount
-        total_bill = row.get("Total Bill Amount", 0)
-        row_data.append(float(total_bill) if not pd.isna(total_bill) else 0)
-        
-        # Add Total Discount Amount
-        discount = row.get("Total Discount Amount", 0)
-        row_data.append(float(discount) if not pd.isna(discount) else 0)
-        
-        # Add Total Tax Amount
-        tax = row.get("Total Tax Amount", 0)
-        row_data.append(float(tax) if not pd.isna(tax) else 0)
-        
-        # Add Net Amount
-        net_amount = row.get("Net Amount", 0)
-        row_data.append(float(net_amount) if not pd.isna(net_amount) else 0)
-        
-        # Add Paid AT
-        paid_at = row.get("Paid AT", "")
-        row_data.append(str(paid_at) if not pd.isna(paid_at) else "")
-        
-        # Add Created By
-        created_by = row.get("Created By", "")
-        row_data.append(str(created_by) if not pd.isna(created_by) else "")
-        
-        # Add order id
-        order_id = row.get("order id", "")
-        row_data.append(str(order_id) if not pd.isna(order_id) else "")
-        
-        data_to_append.append(row_data)
-    
-    # Add empty row
-    data_to_append.append([""] * 11)
-    
-    # Add totals row
-    if not new_data.empty:
-        totals = [
-            "", 
-            "TOTAL", 
-            "", 
-            "", 
-            float(new_data["Total Bill Amount"].sum()),
-            float(new_data["Total Discount Amount"].sum()),
-            float(new_data["Total Tax Amount"].sum()),
-            float(new_data["Net Amount"].sum()),
-            "", 
-            "", 
-            ""
-        ]
-        data_to_append.append(totals)
-    
-    # Add 3 more empty rows for separation
-    for _ in range(3):
-        data_to_append.append([""] * 11)
-    
-    return data_to_append
-
 # ===============================
 # ZIP FILE GENERATION FUNCTIONS
 # ===============================
@@ -496,10 +302,10 @@ def create_excel_with_summary(df, sheet_name, folder_path):
     """Create Excel file with summary for a specific status"""
     try:
         file_path = os.path.join(folder_path, f"{sheet_name}.xlsx")
-        
+ 
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
             summary_data = []
-            
+ 
             if not df.empty:
                 grouped = df.groupby('Branch Name').agg({
                     'Total Bill Amount': 'sum',
@@ -508,11 +314,11 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                     'Net Amount': 'sum',
                     'Bill No': 'count'
                 }).round(2)
-                
+ 
                 grouped = grouped.reset_index()
-                grouped.columns = ['Branch Name', 'Total Bill Amount', 'Total Discount Amount', 
+                grouped.columns = ['Branch Name', 'Total Bill Amount', 'Total Discount Amount',
                                  'Total Tax Amount', 'Net Amount', 'Record Count']
-                
+ 
                 grand_totals = pd.DataFrame({
                     'Branch Name': ['GRAND TOTAL'],
                     'Total Bill Amount': [grouped['Total Bill Amount'].sum()],
@@ -521,7 +327,7 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                     'Net Amount': [grouped['Net Amount'].sum()],
                     'Record Count': [grouped['Record Count'].sum()]
                 })
-                
+ 
                 summary_df = pd.concat([grouped, grand_totals], ignore_index=True)
                 summary_data = summary_df
             else:
@@ -533,12 +339,12 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                     'Net Amount': [0],
                     'Record Count': [0]
                 })
-            
+ 
             summary_data.to_excel(writer, sheet_name='Summary', index=False)
-            
+ 
             if not df.empty:
                 df.to_excel(writer, sheet_name='Detailed Data', index=False)
-            
+ 
             workbook = writer.book
             for sheet_name in writer.sheets:
                 worksheet = writer.sheets[sheet_name]
@@ -553,7 +359,7 @@ def create_excel_with_summary(df, sheet_name, folder_path):
                             pass
                     adjusted_width = min(max_length + 2, 30)
                     worksheet.column_dimensions[column_letter].width = adjusted_width
-        
+ 
         return file_path
     except Exception as e:
         print(f"Error creating Excel file for {sheet_name}: {e}")
@@ -565,34 +371,34 @@ def generate_zip_files(df):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         zip_filename = f"branch_data_{timestamp}.zip"
         zip_path = os.path.join(app.config['ZIP_FOLDER'], zip_filename)
-        
+ 
         temp_dir = tempfile.mkdtemp()
         status_files = {}
-        
+ 
         for status in STATUSES:
             status_df = df[df["order status"] == status]
-            
+ 
             if status_df.empty:
                 print(f"⏭️  No data for status: {status}")
                 continue
-            
+ 
             status_folder = os.path.join(temp_dir, status)
             os.makedirs(status_folder, exist_ok=True)
-            
+ 
             status_file = create_excel_with_summary(status_df, status, status_folder)
             if status_file:
                 status_files[status] = status_file
-            
+ 
             for branch, branch_df in status_df.groupby("Branch Name"):
                 if branch_df.empty:
                     continue
-                
+ 
                 branch_file = create_excel_with_summary(
-                    branch_df, 
-                    f"{branch}_{status}", 
+                    branch_df,
+                    f"{branch}_{status}",
                     status_folder
                 )
-        
+ 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(temp_dir):
                 for file in files:
@@ -600,11 +406,11 @@ def generate_zip_files(df):
                         file_path = os.path.join(root, file)
                         rel_path = os.path.relpath(file_path, temp_dir)
                         zipf.write(file_path, rel_path)
-        
+ 
         shutil.rmtree(temp_dir)
-        
+ 
         return zip_filename, zip_path, len(status_files)
-        
+ 
     except Exception as e:
         print(f"Error generating ZIP files: {e}")
         return None, None, 0
@@ -636,50 +442,50 @@ def upload_file():
             return jsonify({'error': f'Missing columns: {missing}'}), 400
 
         df = clean_dataframe_for_json(df)
-        
+ 
         # Clean Bill No column with improved function
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
         df["order status"] = df["order status"].apply(lambda x: str(x).strip())
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
         df = df[df["order status"] != ""]
-        
+ 
         # Check for duplicates WITHIN the uploaded file (based on Bill No + Status)
         df, internal_duplicates_removed = validate_bill_no_uniqueness(df)
-        
+ 
         # Now check for duplicates AGAINST Google Sheets (based on Bill No + Status)
         gc = get_google_sheets_client()
         duplicates_in_google_sheets = {}
         total_duplicates_with_gs = 0
-        
+ 
         if gc:
             # Group data by status
             for status in STATUSES:
                 if status not in SHEET_IDS:
                     continue
-                    
+ 
                 status_df = df[df["order status"] == status]
                 if status_df.empty:
                     continue
-                
+ 
                 try:
                     spreadsheet = gc.open_by_key(SHEET_IDS[status])
                     all_worksheets = spreadsheet.worksheets()
-                    
+ 
                     for branch, branch_df in status_df.groupby("Branch Name"):
                         ws_name = normalize_sheet_name(branch)
-                        
+ 
                         # Find worksheet
                         ws = None
                         for worksheet in all_worksheets:
                             if worksheet.title.lower() == ws_name.lower():
                                 ws = worksheet
                                 break
-                        
+ 
                         if ws:
                             # Get existing records (bill_no, status) from Google Sheets
                             existing_records = get_existing_records(ws)
-                            
+ 
                             # Find duplicates
                             duplicate_records_in_branch = []
                             for _, row in branch_df.iterrows():
@@ -687,7 +493,7 @@ def upload_file():
                                 status_clean = str(row["order status"]).strip()
                                 if (bill_no_clean, status_clean) in existing_records:
                                     duplicate_records_in_branch.append(bill_no_clean)
-                            
+ 
                             if duplicate_records_in_branch:
                                 if status not in duplicates_in_google_sheets:
                                     duplicates_in_google_sheets[status] = {}
@@ -695,44 +501,44 @@ def upload_file():
                                     duplicates_in_google_sheets[status][branch] = []
                                 duplicates_in_google_sheets[status][branch].extend(duplicate_records_in_branch)
                                 total_duplicates_with_gs += len(duplicate_records_in_branch)
-                
+ 
                 except Exception as e:
                     print(f"Error checking Google Sheets for {status}: {e}")
                     continue
-        
+ 
         # Remove duplicates with Google Sheets from the dataframe
         if total_duplicates_with_gs > 0:
             # Create a mask for rows that are NOT duplicates with Google Sheets
             mask = pd.Series([True] * len(df), index=df.index)
-            
+ 
             for status, branches in duplicates_in_google_sheets.items():
                 for branch, bill_nos in branches.items():
                     # Create condition for each duplicate row
                     condition = (
-                        (df["order status"] == status) & 
-                        (df["Branch Name"] == branch) & 
+                        (df["order status"] == status) &
+                        (df["Branch Name"] == branch) &
                         (df["Bill No"].isin(bill_nos))
                     )
                     mask = mask & ~condition
-            
+ 
             df_filtered = df[mask].copy()
             gs_duplicates_removed = len(df) - len(df_filtered)
             df = df_filtered
         else:
             gs_duplicates_removed = 0
-        
+ 
         # Save cleaned data
         df.to_csv(os.path.join(UPLOAD_FOLDER, 'temp_data.csv'), index=False)
-        
+ 
         df_json = df.head(10).to_dict(orient='records')
         df_json = convert_numpy_to_python(df_json)
-        
+ 
         duplicate_message = ""
         if internal_duplicates_removed > 0 or gs_duplicates_removed > 0:
             duplicate_message = f"Removed {internal_duplicates_removed} duplicate rows within file and {gs_duplicates_removed} rows already in Google Sheets"
-        
+ 
         return jsonify({
-            'success': True, 
+            'success': True,
             'rows': len(df),
             'preview': df_json,
             'columns': list(df.columns),
@@ -756,32 +562,32 @@ def process_data():
         option = request.json.get('option')
         if not option:
             return jsonify({'error': 'No option specified'}), 400
-        
+ 
         path = os.path.join(UPLOAD_FOLDER, 'temp_data.csv')
         if not os.path.exists(path):
             return jsonify({'error': 'Upload file first'}), 400
 
         df = pd.read_csv(path)
         df = clean_dataframe_for_json(df)
-        
+ 
         if option == 'google_sheets':
             return update_google_sheets()
-        
-        elif option == 'google_sheets_dual':
-            return update_google_sheets_dual()
-            
+ 
+        elif option == 'summary_sheets':
+            return update_summary_sheets()
+ 
         elif option == 'download_zip':
             zip_filename, zip_path, status_count = generate_zip_files(df)
-            
+ 
             if not zip_filename:
                 return jsonify({'error': 'Failed to generate ZIP files'}), 500
-            
+ 
             status_summary = {}
             for status in STATUSES:
                 status_df = df[df["order status"] == status]
                 if not status_df.empty:
                     status_summary[status] = len(status_df)
-            
+ 
             return jsonify({
                 'success': True,
                 'message': f'ZIP file generated with {status_count} status folders',
@@ -790,7 +596,7 @@ def process_data():
                 'status_summary': status_summary,
                 'total_records': len(df)
             })
-            
+ 
         else:
             return jsonify({'error': 'Invalid option'}), 400
 
@@ -816,13 +622,13 @@ def update_google_sheets():
         current_time = datetime.now().strftime("%H:%M:%S")
         total_rows_updated = 0
         summary = {}
-        
+ 
         batch_size = 5
         processed_count = 0
-        
+ 
         # Track processed (bill_no, status) combinations in this run
         processed_combos_this_run = set()
-        
+ 
         # Group data by status first
         for status in STATUSES:
             if status not in SHEET_IDS:
@@ -830,27 +636,27 @@ def update_google_sheets():
 
             spreadsheet = gc.open_by_key(SHEET_IDS[status])
             status_df = df[df["order status"] == status]
-            
+ 
             if status_df.empty:
                 print(f"⏭️  No data for status: {status}")
                 continue
-            
+ 
             print(f"📊 Processing status: {status}")
             all_worksheets = spreadsheet.worksheets()
             existing_worksheets = {}
             for ws in all_worksheets:
                 existing_worksheets[ws.title.lower()] = ws
-            
+ 
             branches_data = list(status_df.groupby("Branch Name"))
-            
+ 
             for branch, branch_df in branches_data:
                 processed_count += 1
                 if processed_count % batch_size == 0:
                     print(f"⏳ Rate limiting: Waiting 15 seconds...")
                     time.sleep(15)
-                
+ 
                 ws_name = normalize_sheet_name(branch)
-                
+ 
                 # Get or create worksheet
                 if ws_name.lower() in existing_worksheets:
                     ws = existing_worksheets[ws_name.lower()]
@@ -860,110 +666,110 @@ def update_google_sheets():
                     try:
                         ws = spreadsheet.add_worksheet(title=ws_name, rows="1000", cols="20")
                         print(f"✅ Created new worksheet: {ws_name}")
-                        
+ 
                         date_header = [f"Data Saved On: {today} {current_time}"] + [""] * 19
-                        headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName", 
-                                      "Bill Date", "Total Bill Amount", "Total Discount Amount", 
-                                      "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status", 
-                                      "Created By", "Created On", "order id", "tracking id", 
+                        headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName",
+                                      "Bill Date", "Total Bill Amount", "Total Discount Amount",
+                                      "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status",
+                                      "Created By", "Created On", "order id", "tracking id",
                                       "bank ref no", "order status", "payment mode", "card name"]
-                        
+ 
                         ws.batch_update([
                             {'range': 'A1:T1', 'values': [date_header]},
                             {'range': 'A2:T2', 'values': [headers_list]}
                         ])
-                        
+ 
                         existing_worksheets[ws_name.lower()] = ws
                         print(f"✅ Initialized new worksheet with headers")
-                        
+ 
                     except Exception as e:
                         print(f"❌ Error creating worksheet: {e}")
                         continue
-                
+ 
                 # ============ GET ALL EXISTING RECORDS ============
                 # Get ALL values from the worksheet for fresh read every time
                 all_values = ws.get_all_values()
-                
+ 
                 # Extract all (bill_no, status) combinations
                 existing_records = set()
-                
+ 
                 for row in all_values:
                     if len(row) > 17:  # Need at least up to column R
                         bill_no = row[2]  # Column C
                         status_val = row[17] if len(row) > 17 else ""  # Column R
-                        
+ 
                         if bill_no and str(bill_no).strip() and status_val and str(status_val).strip():
                             bill_no_clean = clean_bill_number(bill_no)
                             status_clean = str(status_val).strip()
-                            
+ 
                             # Skip headers
-                            if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and 
-                                not bill_no_clean.startswith("SNO") and 
+                            if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and
+                                not bill_no_clean.startswith("SNO") and
                                 bill_no_clean != "" and bill_no_clean != "TOTAL" and
                                 status_clean and status_clean != ""):
                                 existing_records.add((bill_no_clean, status_clean))
-                
+ 
                 print(f"📊 Worksheet '{ws.title}' has {len(existing_records)} existing unique (bill_no, status) combinations")
                 if len(existing_records) > 0:
                     print(f"📊 Sample: {list(existing_records)[:5]}")
-                
+ 
                 # ============ CLEAN UPLOADED DATA ============
                 branch_df = branch_df.copy()
-                
+ 
                 # Clean Bill No column with improved function
                 branch_df["Bill No"] = branch_df["Bill No"].apply(clean_bill_number)
                 branch_df["order status"] = branch_df["order status"].apply(lambda x: str(x).strip())
-                
+ 
                 # Remove invalid records
                 branch_df = branch_df[branch_df["Bill No"] != ""]
                 branch_df = branch_df[branch_df["Bill No"] != "nan"]
                 branch_df = branch_df[branch_df["order status"] != ""]
-                
+ 
                 print(f"🔍 Branch: {branch}, Total records in upload: {len(branch_df)}")
-                
+ 
                 # ============ REMOVE DUPLICATES WITHIN UPLOAD ============
                 dup_in_upload = branch_df[branch_df.duplicated(subset=['Bill No', 'order status'], keep=False)]
                 if not dup_in_upload.empty:
                     print(f"⚠️  Found {len(dup_in_upload)} duplicate (bill_no, status) combinations WITHIN uploaded data for {branch}")
                     branch_df = branch_df.drop_duplicates(subset=['Bill No', 'order status'], keep='first')
                     print(f"✅ After removing internal duplicates: {len(branch_df)} records")
-                
+ 
                 # ============ FILTER OUT ALREADY EXISTING RECORDS ============
                 # Create a list of (bill_no, status) tuples for filtering
                 branch_df['combo'] = list(zip(branch_df["Bill No"], branch_df["order status"]))
-                
+ 
                 # First, filter out records that already exist in the Google Sheet
                 new_records_mask = ~branch_df['combo'].isin(existing_records)
                 new_data = branch_df[new_records_mask].copy()
-                
+ 
                 # Also filter out records we've already processed in this same run
                 if processed_combos_this_run:
                     not_processed_this_run_mask = ~new_data['combo'].isin(processed_combos_this_run)
                     new_data = new_data[not_processed_this_run_mask].copy()
-                
+ 
                 # Calculate stats
                 total_in_upload = len(branch_df)
                 duplicates_with_gs = len(branch_df[~new_records_mask])
                 duplicates_this_run = len(set(branch_df['combo']) & processed_combos_this_run) if processed_combos_this_run else 0
                 new_rows = len(new_data)
-                
+ 
                 print(f"🔍 Duplicate breakdown for {branch}:")
                 print(f"   - Total in upload: {total_in_upload}")
                 print(f"   - Already in Google Sheet: {duplicates_with_gs}")
                 print(f"   - Already processed this run: {duplicates_this_run}")
                 print(f"   - New rows to add: {new_rows}")
-                
+ 
                 if new_rows == 0:
                     print(f"⏭️  No new data for {branch}")
                     # Drop the combo column before continuing
                     branch_df = branch_df.drop('combo', axis=1, errors='ignore')
                     new_data = new_data.drop('combo', axis=1, errors='ignore')
                     continue
-                
+ 
                 # Drop the combo column before further processing
                 branch_df = branch_df.drop('combo', axis=1, errors='ignore')
                 new_data = new_data.drop('combo', axis=1, errors='ignore')
-                
+ 
                 # ============ FIND CORRECT SERIAL NUMBER ============
                 # Find the highest serial number in the sheet
                 max_serial = 0
@@ -977,38 +783,38 @@ def update_google_sheets():
                                     max_serial = serial
                             except:
                                 pass
-                
+ 
                 start_serial = max_serial + 1
                 print(f"🔢 Starting serial number: {start_serial}")
-                
+ 
                 # ============ FIND NEXT EMPTY ROW ============
                 # Find the first empty row at the bottom
                 last_row_with_data = 0
                 for i, row in enumerate(all_values, start=1):
                     if any(cell and str(cell).strip() for cell in row):
                         last_row_with_data = i
-                
+ 
                 append_row = last_row_with_data + 1
                 print(f"📝 Appending at row: {append_row}")
-                
+ 
                 # ============ PREPARE DATA ============
                 # Prepare headers list
-                headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName", 
-                              "Bill Date", "Total Bill Amount", "Total Discount Amount", 
-                              "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status", 
-                              "Created By", "Created On", "order id", "tracking id", 
+                headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName",
+                              "Bill Date", "Total Bill Amount", "Total Discount Amount",
+                              "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status",
+                              "Created By", "Created On", "order id", "tracking id",
                               "bank ref no", "order status", "payment mode", "card name"]
-                
+ 
                 # Prepare data for insertion
                 data_to_append = []
-                
+ 
                 # Add date header
                 date_row = [f"Data Saved On: {today} {current_time}"] + [""] * 19
                 data_to_append.append(date_row)
-                
+ 
                 # Add column headers
                 data_to_append.append(headers_list)
-                
+ 
                 # Add data rows with correct serial numbers
                 for idx, (_, row) in enumerate(new_data.iterrows()):
                     row_data = []
@@ -1017,7 +823,7 @@ def update_google_sheets():
                     row_data.append(clean_bill_number(row.get("Bill No", "")))
                     row_data.append(row.get("Branch Name", ""))
                     row_data.append(row.get("FinancialYearName", ""))
-                    
+ 
                     # Bill Date
                     bill_date = row.get("Bill Date", "")
                     if pd.isna(bill_date):
@@ -1025,28 +831,28 @@ def update_google_sheets():
                     elif isinstance(bill_date, (pd.Timestamp, datetime)):
                         bill_date = bill_date.strftime('%Y-%m-%d')
                     row_data.append(str(bill_date))
-                    
+ 
                     # Amounts
                     for col in ["Total Bill Amount", "Total Discount Amount", "Total Tax Amount", "Net Amount"]:
                         val = row.get(col, 0)
                         row_data.append(float(val) if not pd.isna(val) else 0)
-                    
+ 
                     # Remaining columns
-                    for col in ["Paid AT", "Bill Status", "Created By", "Created On", 
-                              "order id", "tracking id", "bank ref no", "order status", 
+                    for col in ["Paid AT", "Bill Status", "Created By", "Created On",
+                              "order id", "tracking id", "bank ref no", "order status",
                               "payment mode", "card name"]:
                         val = row.get(col, "")
                         row_data.append(str(val) if not pd.isna(val) else "")
-                    
+ 
                     data_to_append.append(row_data)
-                    
+ 
                     # Add this combo to processed set
                     combo = (clean_bill_number(row.get("Bill No", "")), str(row.get("order status", "")).strip())
                     processed_combos_this_run.add(combo)
-                
+ 
                 # Add empty row
                 data_to_append.append([""] * 20)
-                
+ 
                 # Add totals row
                 if not new_data.empty:
                     totals = ["", "", "TOTAL", "", "", "",
@@ -1056,68 +862,68 @@ def update_google_sheets():
                              float(new_data["Net Amount"].sum())]
                     totals.extend([""] * 10)
                     data_to_append.append(totals)
-                
+ 
                 # Add 3 empty rows
                 for _ in range(3):
                     data_to_append.append([""] * 20)
-                
+ 
                 # ============ UPDATE GOOGLE SHEET ============
                 try:
                     # Calculate range
                     end_row = append_row + len(data_to_append) - 1
                     full_range = f"A{append_row}:T{end_row}"
-                    
+ 
                     print(f"📝 Writing {len(new_data)} rows to {full_range}")
-                    
+ 
                     # Update the sheet
                     ws.update(full_range, data_to_append, value_input_option='USER_ENTERED')
-                    
+ 
                     print(f"✅ Successfully added {len(new_data)} rows to {ws.title}")
-                    
+ 
                     # Update summary
                     rows_added = len(new_data)
                     total_rows_updated += rows_added
-                    
+ 
                     if status not in summary:
                         summary[status] = {}
                     if branch not in summary[status]:
                         summary[status][branch] = 0
                     summary[status][branch] += rows_added
-                    
+ 
                 except Exception as e:
                     print(f"❌ Error updating sheet: {e}")
                     time.sleep(5)
                     try:
                         ws.update(full_range, data_to_append, value_input_option='USER_ENTERED')
                         print(f"✅ Retry successful for {ws.title}")
-                        
+ 
                         rows_added = len(new_data)
                         total_rows_updated += rows_added
-                        
+ 
                         if status not in summary:
                             summary[status] = {}
                         if branch not in summary[status]:
                             summary[status][branch] = 0
                         summary[status][branch] += rows_added
-                        
+ 
                     except Exception as retry_e:
                         print(f"❌ Retry failed: {retry_e}")
-                
+ 
                 time.sleep(2)  # Small delay between sheets
-        
+ 
         # ============ PREPARE RESPONSE ============
         summary = convert_numpy_to_python(summary)
-        
+ 
         response_message = f"Google Sheets updated successfully!\n"
         response_message += f"Total rows added: {total_rows_updated}\n"
         response_message += f"Date: {today} {current_time}\n\n"
-        
+ 
         for status, branches in summary.items():
             if branches:
                 response_message += f"{status}:\n"
                 for branch, count in branches.items():
                     response_message += f"  {branch}: {count} rows\n"
-        
+ 
         return jsonify({
             'success': True,
             'message': response_message,
@@ -1133,9 +939,9 @@ def update_google_sheets():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/update-google-sheets-dual', methods=['POST'])
-def update_google_sheets_dual():
-    """Update both main and summary Google Sheets with specific columns"""
+@app.route('/update-summary-sheets', methods=['POST'])
+def update_summary_sheets():
+    """Update only summary Google Sheets with specific columns (11 columns)"""
     try:
         path = os.path.join(UPLOAD_FOLDER, 'temp_data.csv')
         if not os.path.exists(path):
@@ -1150,42 +956,31 @@ def update_google_sheets_dual():
 
         today = datetime.now().strftime("%d-%m-%Y")
         current_time = datetime.now().strftime("%H:%M:%S")
-        total_rows_updated_main = 0
-        total_rows_updated_summary = 0
-        summary_main = {}
-        summary_summary = {}
+        total_rows_updated = 0
+        summary = {}
         
         batch_size = 5
         processed_count = 0
         
-        # Track processed (bill_no, status) combinations in this run for both sheets
-        processed_combos_this_run = set()
+        # Track processed bill numbers in this run
+        processed_bills_this_run = set()
         
         # Group data by status first
         for status in STATUSES:
-            if status not in SHEET_IDS or status not in SUMMARY_SHEET_IDS:
+            if status not in SUMMARY_SHEET_IDS:
                 continue
 
-            # Get both spreadsheets
-            main_spreadsheet = gc.open_by_key(SHEET_IDS[status])
-            summary_spreadsheet = gc.open_by_key(SUMMARY_SHEET_IDS[status])
-            
+            spreadsheet = gc.open_by_key(SUMMARY_SHEET_IDS[status])
             status_df = df[df["order status"] == status]
             
             if status_df.empty:
                 print(f"⏭️  No data for status: {status}")
                 continue
             
-            print(f"\n📊 Processing status: {status}")
-            print(f"   - MAIN Sheet ID: {SHEET_IDS[status]}")
-            print(f"   - SUMMARY Sheet ID: {SUMMARY_SHEET_IDS[status]}")
+            print(f"\n📊 Processing status: {status} (SUMMARY SHEET ONLY)")
             
-            # Get existing worksheets
-            all_worksheets_main = main_spreadsheet.worksheets()
-            existing_worksheets_main = {ws.title.lower(): ws for ws in all_worksheets_main}
-            
-            all_worksheets_summary = summary_spreadsheet.worksheets()
-            existing_worksheets_summary = {ws.title.lower(): ws for ws in all_worksheets_summary}
+            all_worksheets = spreadsheet.worksheets()
+            existing_worksheets = {ws.title.lower(): ws for ws in all_worksheets}
             
             branches_data = list(status_df.groupby("Branch Name"))
             
@@ -1204,345 +999,198 @@ def update_google_sheets_dual():
                 branch_df = branch_df[branch_df["order status"] != ""]
                 
                 # Remove duplicates within branch data
-                dup_in_upload = branch_df[branch_df.duplicated(subset=['Bill No', 'order status'], keep=False)]
+                dup_in_upload = branch_df[branch_df.duplicated(subset=['Bill No'], keep=False)]
                 if not dup_in_upload.empty:
-                    branch_df = branch_df.drop_duplicates(subset=['Bill No', 'order status'], keep='first')
+                    branch_df = branch_df.drop_duplicates(subset=['Bill No'], keep='first')
                 
                 if branch_df.empty:
                     continue
                 
-                print(f"\n🔍 Processing branch: {branch}")
+                print(f"🔍 Processing branch: {branch}")
                 
-                # ============ PROCESS MAIN SHEET ============
-                ws_name_main = normalize_sheet_name(branch)
+                # Worksheet name for summary
+                ws_name = f"{normalize_sheet_name(branch)}_summary"
                 
-                # Get or create MAIN worksheet
-                if ws_name_main.lower() in existing_worksheets_main:
-                    ws_main = existing_worksheets_main[ws_name_main.lower()]
-                    print(f"   ✅ Found MAIN worksheet: {ws_main.title}")
+                # Get or create worksheet
+                if ws_name.lower() in existing_worksheets:
+                    ws = existing_worksheets[ws_name.lower()]
+                    print(f"   ✅ Found SUMMARY worksheet: {ws.title}")
                 else:
-                    print(f"   📄 Creating new MAIN worksheet: {ws_name_main}")
+                    print(f"   📄 Creating new SUMMARY worksheet: {ws_name}")
                     try:
-                        ws_main = main_spreadsheet.add_worksheet(title=ws_name_main, rows="1000", cols="20")
-                        date_header = [f"Data Saved On: {today} {current_time}"] + [""] * 19
-                        headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName", 
-                                      "Bill Date", "Total Bill Amount", "Total Discount Amount", 
-                                      "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status", 
-                                      "Created By", "Created On", "order id", "tracking id", 
-                                      "bank ref no", "order status", "payment mode", "card name"]
-                        ws_main.batch_update([
-                            {'range': 'A1:T1', 'values': [date_header]},
-                            {'range': 'A2:T2', 'values': [headers_list]}
-                        ])
-                        existing_worksheets_main[ws_name_main.lower()] = ws_main
-                        print(f"   ✅ Created and initialized MAIN worksheet")
-                    except Exception as e:
-                        print(f"   ❌ Error creating MAIN worksheet: {e}")
-                        continue
-                
-                # Get existing records from MAIN sheet
-                all_values_main = ws_main.get_all_values()
-                existing_records_main = set()
-                
-                for row in all_values_main:
-                    if len(row) > 17:
-                        bill_no = row[2]
-                        status_val = row[17] if len(row) > 17 else ""
-                        if bill_no and str(bill_no).strip() and status_val and str(status_val).strip():
-                            bill_no_clean = clean_bill_number(bill_no)
-                            status_clean = str(status_val).strip()
-                            if (bill_no_clean and not bill_no_clean.startswith("BILLNO") and 
-                                not bill_no_clean.startswith("SNO") and 
-                                bill_no_clean != "" and bill_no_clean != "TOTAL" and
-                                status_clean and status_clean != ""):
-                                existing_records_main.add((bill_no_clean, status_clean))
-                
-                print(f"   📊 MAIN sheet has {len(existing_records_main)} existing (bill_no, status) combinations")
-                
-                # Filter new records for MAIN sheet
-                branch_df['combo'] = list(zip(branch_df["Bill No"], branch_df["order status"]))
-                new_records_mask_main = ~branch_df['combo'].isin(existing_records_main)
-                if processed_combos_this_run:
-                    not_processed_this_run_mask = ~branch_df['combo'].isin(processed_combos_this_run)
-                    new_records_mask_main = new_records_mask_main & not_processed_this_run_mask
-                
-                new_data_main = branch_df[new_records_mask_main].copy()
-                
-                # ============ PROCESS SUMMARY SHEET ============
-                ws_name_summary = f"{ws_name_main}_summary"
-                
-                # Get or create SUMMARY worksheet (11 columns)
-                if ws_name_summary.lower() in existing_worksheets_summary:
-                    ws_summary = existing_worksheets_summary[ws_name_summary.lower()]
-                    print(f"   ✅ Found SUMMARY worksheet: {ws_summary.title}")
-                else:
-                    print(f"   📄 Creating new SUMMARY worksheet: {ws_name_summary}")
-                    try:
-                        ws_summary = summary_spreadsheet.add_worksheet(title=ws_name_summary, rows="1000", cols="11")
+                        ws = spreadsheet.add_worksheet(title=ws_name, rows="1000", cols="11")
                         date_header_summary = [f"Data Saved On: {today} {current_time}"] + [""] * 10
                         headers_list_summary = [
-                            "S No", "Bill No", "Branch Name", "Bill Date", 
-                            "Total Bill Amount", "Total Discount Amount", "Total Tax Amount", "Net Amount", 
+                            "S No", "Bill No", "Branch Name", "Bill Date",
+                            "Total Bill Amount", "Total Discount Amount", "Total Tax Amount", "Net Amount",
                             "Paid AT", "Created By", "order id"
                         ]
-                        ws_summary.batch_update([
+                        ws.batch_update([
                             {'range': 'A1:K1', 'values': [date_header_summary]},
                             {'range': 'A2:K2', 'values': [headers_list_summary]}
                         ])
-                        existing_worksheets_summary[ws_name_summary.lower()] = ws_summary
+                        existing_worksheets[ws_name.lower()] = ws
                         print(f"   ✅ Created and initialized SUMMARY worksheet with 11 columns")
                     except Exception as e:
-                        print(f"   ❌ Error creating SUMMARY worksheet: {e}")
+                        print(f"   ❌ Error creating worksheet: {e}")
                         continue
                 
                 # Get existing bills from SUMMARY sheet
-                existing_bills_summary = get_existing_bills_from_summary(ws_summary)
-                print(f"   📊 SUMMARY sheet has {len(existing_bills_summary)} existing bill numbers")
+                existing_bills = get_existing_bills_from_summary(ws)
+                print(f"   📊 SUMMARY sheet has {len(existing_bills)} existing bill numbers")
                 
-                # Filter new records for SUMMARY sheet
-                new_records_mask_summary = ~branch_df["Bill No"].isin(existing_bills_summary)
+                # Filter out already existing bills
+                new_records_mask = ~branch_df["Bill No"].isin(existing_bills)
                 
                 # Also filter out records already processed in this run
-                if processed_combos_this_run:
-                    processed_mask = branch_df['combo'].isin(processed_combos_this_run)
-                    new_records_mask_summary = new_records_mask_summary & ~processed_mask
+                if processed_bills_this_run:
+                    not_processed_mask = ~branch_df["Bill No"].isin(processed_bills_this_run)
+                    new_records_mask = new_records_mask & not_processed_mask
                 
-                new_data_summary = branch_df[new_records_mask_summary].copy()
+                new_data = branch_df[new_records_mask].copy()
                 
-                print(f"   📈 New records:")
-                print(f"      - For MAIN sheet: {len(new_data_main)} rows")
-                print(f"      - For SUMMARY sheet: {len(new_data_summary)} rows")
+                print(f"   📈 New records to add: {len(new_data)} rows")
                 
-                # ============ UPDATE MAIN SHEET ============
-                if not new_data_main.empty:
-                    # Find serial number for MAIN sheet
-                    max_serial_main = 0
-                    for row in all_values_main:
-                        if row and len(row) > 0 and row[0] and str(row[0]).strip():
-                            serial_str = str(row[0]).strip()
-                            if serial_str.isdigit():
-                                max_serial_main = max(max_serial_main, int(serial_str))
+                if new_data.empty:
+                    print(f"   ⏭️  No new data for {branch}")
+                    continue
+                
+                # Find serial number
+                all_values = ws.get_all_values()
+                max_serial = 0
+                for row in all_values:
+                    if row and len(row) > 0 and row[0] and str(row[0]).strip():
+                        serial_str = str(row[0]).strip()
+                        if serial_str.isdigit():
+                            max_serial = max(max_serial, int(serial_str))
+                
+                start_serial = max_serial + 1
+                
+                # Find next empty row
+                last_row_with_data = 0
+                for i, row in enumerate(all_values, start=1):
+                    if any(cell and str(cell).strip() for cell in row):
+                        last_row_with_data = i
+                
+                append_row = last_row_with_data + 1
+                
+                # Prepare data for SUMMARY sheet
+                data_to_append = []
+                data_to_append.append([f"Data Saved On: {today} {current_time}"] + [""] * 10)
+                data_to_append.append([
+                    "S No", "Bill No", "Branch Name", "Bill Date",
+                    "Total Bill Amount", "Total Discount Amount", "Total Tax Amount", "Net Amount",
+                    "Paid AT", "Created By", "order id"
+                ])
+                
+                for idx, (_, row) in enumerate(new_data.iterrows()):
+                    row_data = []
+                    row_data.append(start_serial + idx)
+                    row_data.append(clean_bill_number(row.get("Bill No", "")))
+                    row_data.append(row.get("Branch Name", ""))
                     
-                    start_serial_main = max_serial_main + 1
+                    # Bill Date
+                    bill_date = row.get("Bill Date", "")
+                    if pd.isna(bill_date):
+                        bill_date = ""
+                    elif isinstance(bill_date, (pd.Timestamp, datetime)):
+                        bill_date = bill_date.strftime('%Y-%m-%d')
+                    row_data.append(str(bill_date))
                     
-                    # Find next empty row
-                    last_row_with_data_main = 0
-                    for i, row in enumerate(all_values_main, start=1):
-                        if any(cell and str(cell).strip() for cell in row):
-                            last_row_with_data_main = i
+                    # Amounts
+                    total_bill = row.get("Total Bill Amount", 0)
+                    row_data.append(float(total_bill) if not pd.isna(total_bill) else 0)
                     
-                    append_row_main = last_row_with_data_main + 1
+                    discount = row.get("Total Discount Amount", 0)
+                    row_data.append(float(discount) if not pd.isna(discount) else 0)
                     
-                    # Prepare data for MAIN sheet
-                    data_to_append_main = []
-                    data_to_append_main.append([f"Data Saved On: {today} {current_time}"] + [""] * 19)
+                    tax = row.get("Total Tax Amount", 0)
+                    row_data.append(float(tax) if not pd.isna(tax) else 0)
                     
-                    headers_list = ["S No", "Id", "Bill No", "Branch Name", "FinancialYearName", 
-                                  "Bill Date", "Total Bill Amount", "Total Discount Amount", 
-                                  "Total Tax Amount", "Net Amount", "Paid AT", "Bill Status", 
-                                  "Created By", "Created On", "order id", "tracking id", 
-                                  "bank ref no", "order status", "payment mode", "card name"]
-                    data_to_append_main.append(headers_list)
+                    net_amount = row.get("Net Amount", 0)
+                    row_data.append(float(net_amount) if not pd.isna(net_amount) else 0)
                     
-                    for idx, (_, row) in enumerate(new_data_main.iterrows()):
-                        row_data = []
-                        row_data.append(start_serial_main + idx)
-                        row_data.append(row.get("Id", ""))
-                        row_data.append(clean_bill_number(row.get("Bill No", "")))
-                        row_data.append(row.get("Branch Name", ""))
-                        row_data.append(row.get("FinancialYearName", ""))
-                        
-                        bill_date = row.get("Bill Date", "")
-                        if pd.isna(bill_date):
-                            bill_date = ""
-                        elif isinstance(bill_date, (pd.Timestamp, datetime)):
-                            bill_date = bill_date.strftime('%Y-%m-%d')
-                        row_data.append(str(bill_date))
-                        
-                        for col in ["Total Bill Amount", "Total Discount Amount", "Total Tax Amount", "Net Amount"]:
-                            val = row.get(col, 0)
-                            row_data.append(float(val) if not pd.isna(val) else 0)
-                        
-                        for col in ["Paid AT", "Bill Status", "Created By", "Created On", 
-                                  "order id", "tracking id", "bank ref no", "order status", 
-                                  "payment mode", "card name"]:
-                            val = row.get(col, "")
-                            row_data.append(str(val) if not pd.isna(val) else "")
-                        
-                        data_to_append_main.append(row_data)
-                        
-                        combo = (clean_bill_number(row.get("Bill No", "")), str(row.get("order status", "")).strip())
-                        processed_combos_this_run.add(combo)
+                    # Other fields
+                    paid_at = row.get("Paid AT", "")
+                    row_data.append(str(paid_at) if not pd.isna(paid_at) else "")
                     
-                    data_to_append_main.append([""] * 20)
+                    created_by = row.get("Created By", "")
+                    row_data.append(str(created_by) if not pd.isna(created_by) else "")
                     
-                    if not new_data_main.empty:
-                        totals = ["", "", "TOTAL", "", "", "",
-                                 float(new_data_main["Total Bill Amount"].sum()),
-                                 float(new_data_main["Total Discount Amount"].sum()),
-                                 float(new_data_main["Total Tax Amount"].sum()),
-                                 float(new_data_main["Net Amount"].sum())]
-                        totals.extend([""] * 10)
-                        data_to_append_main.append(totals)
+                    order_id = row.get("order id", "")
+                    row_data.append(str(order_id) if not pd.isna(order_id) else "")
                     
-                    for _ in range(3):
-                        data_to_append_main.append([""] * 20)
+                    data_to_append.append(row_data)
                     
-                    # Update MAIN sheet
+                    # Add bill to processed set
+                    processed_bills_this_run.add(clean_bill_number(row.get("Bill No", "")))
+                
+                data_to_append.append([""] * 11)
+                
+                if not new_data.empty:
+                    totals = [
+                        "",
+                        "TOTAL",
+                        "",
+                        "",
+                        float(new_data["Total Bill Amount"].sum()),
+                        float(new_data["Total Discount Amount"].sum()),
+                        float(new_data["Total Tax Amount"].sum()),
+                        float(new_data["Net Amount"].sum()),
+                        "",
+                        "",
+                        ""
+                    ]
+                    data_to_append.append(totals)
+                
+                for _ in range(3):
+                    data_to_append.append([""] * 11)
+                
+                # Update SUMMARY sheet
+                try:
+                    end_row = append_row + len(data_to_append) - 1
+                    ws.update(f"A{append_row}:K{end_row}", data_to_append, value_input_option='USER_ENTERED')
+                    print(f"   ✅ SUMMARY sheet updated with {len(new_data)} rows")
+                    
+                    total_rows_updated += len(new_data)
+                    
+                    if status not in summary:
+                        summary[status] = {}
+                    if branch not in summary[status]:
+                        summary[status][branch] = 0
+                    summary[status][branch] += len(new_data)
+                    
+                except Exception as e:
+                    print(f"   ❌ Error updating SUMMARY sheet: {e}")
+                    time.sleep(5)
                     try:
-                        end_row = append_row_main + len(data_to_append_main) - 1
-                        ws_main.update(f"A{append_row_main}:T{end_row}", data_to_append_main, value_input_option='USER_ENTERED')
-                        print(f"   ✅ MAIN sheet updated with {len(new_data_main)} rows")
+                        ws.update(f"A{append_row}:K{end_row}", data_to_append, value_input_option='USER_ENTERED')
+                        print(f"   ✅ Retry successful for {ws.title}")
                         
-                        total_rows_updated_main += len(new_data_main)
+                        total_rows_updated += len(new_data)
                         
-                        if status not in summary_main:
-                            summary_main[status] = {}
-                        if branch not in summary_main[status]:
-                            summary_main[status][branch] = 0
-                        summary_main[status][branch] += len(new_data_main)
+                        if status not in summary:
+                            summary[status] = {}
+                        if branch not in summary[status]:
+                            summary[status][branch] = 0
+                        summary[status][branch] += len(new_data)
                         
-                    except Exception as e:
-                        print(f"   ❌ Error updating MAIN sheet: {e}")
-                
-                # ============ UPDATE SUMMARY SHEET ============
-                if not new_data_summary.empty:
-                    # Find serial number for SUMMARY sheet
-                    all_values_summary = ws_summary.get_all_values()
-                    
-                    max_serial_summary = 0
-                    for row in all_values_summary:
-                        if row and len(row) > 0 and row[0] and str(row[0]).strip():
-                            serial_str = str(row[0]).strip()
-                            if serial_str.isdigit():
-                                max_serial_summary = max(max_serial_summary, int(serial_str))
-                    
-                    start_serial_summary = max_serial_summary + 1
-                    
-                    # Find next empty row
-                    last_row_with_data_summary = 0
-                    for i, row in enumerate(all_values_summary, start=1):
-                        if any(cell and str(cell).strip() for cell in row):
-                            last_row_with_data_summary = i
-                    
-                    append_row_summary = last_row_with_data_summary + 1
-                    
-                    # Prepare data for SUMMARY sheet (11 columns as specified)
-                    data_to_append_summary = []
-                    data_to_append_summary.append([f"Data Saved On: {today} {current_time}"] + [""] * 10)
-                    data_to_append_summary.append([
-                        "S No", "Bill No", "Branch Name", "Bill Date", 
-                        "Total Bill Amount", "Total Discount Amount", "Total Tax Amount", "Net Amount", 
-                        "Paid AT", "Created By", "order id"
-                    ])
-                    
-                    for idx, (_, row) in enumerate(new_data_summary.iterrows()):
-                        row_data = []
-                        row_data.append(start_serial_summary + idx)
-                        row_data.append(clean_bill_number(row.get("Bill No", "")))
-                        row_data.append(row.get("Branch Name", ""))
-                        
-                        # Bill Date
-                        bill_date = row.get("Bill Date", "")
-                        if pd.isna(bill_date):
-                            bill_date = ""
-                        elif isinstance(bill_date, (pd.Timestamp, datetime)):
-                            bill_date = bill_date.strftime('%Y-%m-%d')
-                        row_data.append(str(bill_date))
-                        
-                        # Amounts
-                        total_bill = row.get("Total Bill Amount", 0)
-                        row_data.append(float(total_bill) if not pd.isna(total_bill) else 0)
-                        
-                        discount = row.get("Total Discount Amount", 0)
-                        row_data.append(float(discount) if not pd.isna(discount) else 0)
-                        
-                        tax = row.get("Total Tax Amount", 0)
-                        row_data.append(float(tax) if not pd.isna(tax) else 0)
-                        
-                        net_amount = row.get("Net Amount", 0)
-                        row_data.append(float(net_amount) if not pd.isna(net_amount) else 0)
-                        
-                        # Other fields
-                        paid_at = row.get("Paid AT", "")
-                        row_data.append(str(paid_at) if not pd.isna(paid_at) else "")
-                        
-                        created_by = row.get("Created By", "")
-                        row_data.append(str(created_by) if not pd.isna(created_by) else "")
-                        
-                        order_id = row.get("order id", "")
-                        row_data.append(str(order_id) if not pd.isna(order_id) else "")
-                        
-                        data_to_append_summary.append(row_data)
-                        
-                        # Add combo to processed set
-                        combo = (clean_bill_number(row.get("Bill No", "")), str(row.get("order status", "")).strip())
-                        processed_combos_this_run.add(combo)
-                    
-                    data_to_append_summary.append([""] * 11)
-                    
-                    if not new_data_summary.empty:
-                        totals = [
-                            "", 
-                            "TOTAL", 
-                            "", 
-                            "", 
-                            float(new_data_summary["Total Bill Amount"].sum()),
-                            float(new_data_summary["Total Discount Amount"].sum()),
-                            float(new_data_summary["Total Tax Amount"].sum()),
-                            float(new_data_summary["Net Amount"].sum()),
-                            "", 
-                            "", 
-                            ""
-                        ]
-                        data_to_append_summary.append(totals)
-                    
-                    for _ in range(3):
-                        data_to_append_summary.append([""] * 11)
-                    
-                    # Update SUMMARY sheet
-                    try:
-                        end_row = append_row_summary + len(data_to_append_summary) - 1
-                        ws_summary.update(f"A{append_row_summary}:K{end_row}", data_to_append_summary, value_input_option='USER_ENTERED')
-                        print(f"   ✅ SUMMARY sheet updated with {len(new_data_summary)} rows")
-                        
-                        total_rows_updated_summary += len(new_data_summary)
-                        
-                        if status not in summary_summary:
-                            summary_summary[status] = {}
-                        if branch not in summary_summary[status]:
-                            summary_summary[status][branch] = 0
-                        summary_summary[status][branch] += len(new_data_summary)
-                        
-                    except Exception as e:
-                        print(f"   ❌ Error updating SUMMARY sheet: {e}")
-                
-                # Drop combo column
-                branch_df = branch_df.drop('combo', axis=1, errors='ignore')
+                    except Exception as retry_e:
+                        print(f"   ❌ Retry failed: {retry_e}")
                 
                 time.sleep(2)  # Small delay between branches
         
-        # ============ PREPARE RESPONSE ============
-        summary_main = convert_numpy_to_python(summary_main)
-        summary_summary = convert_numpy_to_python(summary_summary)
+        # Prepare response
+        summary = convert_numpy_to_python(summary)
         
-        response_message = f"✅ DUAL GOOGLE SHEETS UPDATE COMPLETED!\n\n"
-        response_message += f"📊 MAIN SHEETS (Full Data - 20 columns):\n"
-        response_message += f"   Total rows added: {total_rows_updated_main}\n\n"
+        response_message = f"✅ SUMMARY SHEETS UPDATE COMPLETED!\n\n"
         response_message += f"📋 SUMMARY SHEETS (11 columns):\n"
         response_message += f"   Columns: S No, Bill No, Branch Name, Bill Date, Total Bill Amount, Total Discount Amount, Total Tax Amount, Net Amount, Paid AT, Created By, order id\n"
-        response_message += f"   Total rows added: {total_rows_updated_summary}\n\n"
+        response_message += f"   Total rows added: {total_rows_updated}\n\n"
         response_message += f"📅 Date: {today} {current_time}\n\n"
         
-        response_message += "📈 MAIN SHEETS BREAKDOWN:\n"
-        for status, branches in summary_main.items():
-            if branches:
-                response_message += f"   {status}:\n"
-                for branch, count in branches.items():
-                    response_message += f"      {branch}: {count} rows\n"
-        
-        response_message += "\n📋 SUMMARY SHEETS BREAKDOWN:\n"
-        for status, branches in summary_summary.items():
+        response_message += "📈 SUMMARY SHEETS BREAKDOWN:\n"
+        for status, branches in summary.items():
             if branches:
                 response_message += f"   {status}:\n"
                 for branch, count in branches.items():
@@ -1551,17 +1199,14 @@ def update_google_sheets_dual():
         return jsonify({
             'success': True,
             'message': response_message,
-            'rows_updated_main': int(total_rows_updated_main),
-            'rows_updated_summary': int(total_rows_updated_summary),
-            'total_rows_updated': int(total_rows_updated_main + total_rows_updated_summary),
-            'summary_main': summary_main,
-            'summary_summary': summary_summary,
+            'rows_updated': int(total_rows_updated),
+            'summary': summary,
             'date': today,
             'time': current_time
         })
-
+        
     except Exception as e:
-        print(f"Error in update-google-sheets-dual: {e}")
+        print(f"Error in update-summary-sheets: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -1601,26 +1246,26 @@ def check_duplicates():
         path = os.path.join(UPLOAD_FOLDER, 'temp_data.csv')
         if not os.path.exists(path):
             return jsonify({'error': 'Upload file first'}), 400
-        
+ 
         df = pd.read_csv(path)
         df = clean_dataframe_for_json(df)
-        
+ 
         # Clean Bill No column with improved function
         df["Bill No"] = df["Bill No"].apply(clean_bill_number)
         df["order status"] = df["order status"].apply(lambda x: str(x).strip())
         df = df[df["Bill No"] != ""]
         df = df[df["Bill No"] != "nan"]
         df = df[df["order status"] != ""]
-        
+ 
         # Check for duplicates based on Bill No + Status
         duplicate_df = df[df.duplicated(subset=['Bill No', 'order status'], keep=False)]
-        
+ 
         if duplicate_df.empty:
             return jsonify({
                 'has_duplicates': False,
                 'message': 'No duplicate (Bill No + Status) combinations found in uploaded data'
             })
-        
+ 
         # Group duplicates
         duplicates_summary = []
         for (bill_no, status), group in duplicate_df.groupby(['Bill No', 'order status']):
@@ -1630,10 +1275,10 @@ def check_duplicates():
                 'count': int(len(group)),
                 'branches': group['Branch Name'].unique().tolist()
             })
-        
+ 
         # Sort by count descending
         duplicates_summary.sort(key=lambda x: x['count'], reverse=True)
-        
+ 
         return jsonify({
             'has_duplicates': True,
             'total_duplicate_combinations': len(duplicate_df.groupby(['Bill No', 'order status']).size()),
@@ -1641,7 +1286,7 @@ def check_duplicates():
             'duplicates': duplicates_summary[:20],
             'message': f'Found {len(duplicate_df)} duplicate rows across {len(duplicate_df.groupby(["Bill No", "order status"]))} unique combinations'
         })
-        
+ 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1655,24 +1300,24 @@ def debug_worksheet(status, branch):
         gc = get_google_sheets_client()
         if not gc:
             return jsonify({'error': 'Google auth failed'}), 500
-        
+ 
         if status not in SHEET_IDS:
             return jsonify({'error': 'Invalid status'}), 400
-        
+ 
         spreadsheet = gc.open_by_key(SHEET_IDS[status])
         ws_name = normalize_sheet_name(branch)
-        
+ 
         ws = None
         for worksheet in spreadsheet.worksheets():
             if worksheet.title.lower() == ws_name.lower():
                 ws = worksheet
                 break
-        
+ 
         if not ws:
             return jsonify({'error': f'Worksheet {branch} not found'}), 404
-        
+ 
         all_values = ws.get_all_values()
-        
+ 
         records = []
         for row in all_values:
             if len(row) > 17:
@@ -1680,7 +1325,7 @@ def debug_worksheet(status, branch):
                 status_val = row[17] if len(row) > 17 else ""
                 if bill_no and status_val and not bill_no.startswith("BILLNO") and not bill_no.startswith("SNO") and bill_no != "TOTAL":
                     records.append((bill_no, status_val))
-        
+ 
         # Find duplicates
         seen = set()
         duplicates = []
@@ -1689,7 +1334,7 @@ def debug_worksheet(status, branch):
                 duplicates.append(record)
             else:
                 seen.add(record)
-        
+ 
         return jsonify({
             'worksheet': ws.title,
             'status': status,
@@ -1700,7 +1345,7 @@ def debug_worksheet(status, branch):
             'duplicate_list': duplicates[:20],
             'sample_records': list(seen)[:10]
         })
-        
+ 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1714,39 +1359,39 @@ def compare_bills():
         data = request.json
         status = data.get('status')
         branch = data.get('branch')
-        
+ 
         if not status or not branch:
             return jsonify({'error': 'Status and branch required'}), 400
-        
+ 
         path = os.path.join(UPLOAD_FOLDER, 'temp_data.csv')
         if not os.path.exists(path):
             return jsonify({'error': 'Upload file first'}), 400
-        
+ 
         df = pd.read_csv(path)
         df = clean_dataframe_for_json(df)
-        
+ 
         gc = get_google_sheets_client()
         if not gc:
             return jsonify({'error': 'Google auth failed'}), 500
-        
+ 
         if status not in SHEET_IDS:
             return jsonify({'error': 'Invalid status'}), 400
-        
+ 
         spreadsheet = gc.open_by_key(SHEET_IDS[status])
         ws_name = normalize_sheet_name(branch)
-        
+ 
         ws = None
         for worksheet in spreadsheet.worksheets():
             if worksheet.title.lower() == ws_name.lower():
                 ws = worksheet
                 break
-        
+ 
         if not ws:
             return jsonify({'error': f'Worksheet {branch} not found'}), 404
-        
+ 
         # Get existing records from Google Sheets
         existing_records = get_existing_records(ws)
-        
+ 
         branch_df = df[(df["order status"] == status) & (df["Branch Name"] == branch)]
         branch_df = branch_df.copy()
         branch_df["Bill No"] = branch_df["Bill No"].apply(clean_bill_number)
@@ -1754,10 +1399,10 @@ def compare_bills():
         branch_df = branch_df[branch_df["Bill No"] != ""]
         branch_df = branch_df[branch_df["Bill No"] != "nan"]
         branch_df = branch_df[branch_df["order status"] != ""]
-        
+ 
         new_records = []
         duplicate_records = []
-        
+ 
         for _, row in branch_df.iterrows():
             bill_no = clean_bill_number(row["Bill No"])
             status_val = str(row["order status"]).strip()
@@ -1765,7 +1410,7 @@ def compare_bills():
                 duplicate_records.append((bill_no, status_val))
             else:
                 new_records.append((bill_no, status_val))
-        
+ 
         return jsonify({
             'status': status,
             'branch': branch,
@@ -1776,7 +1421,7 @@ def compare_bills():
             'new_records_sample': new_records[:10],
             'duplicate_records_sample': duplicate_records[:10]
         })
-        
+ 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1791,14 +1436,14 @@ def cleanup():
             file_path = os.path.join(UPLOAD_FOLDER, file)
             if os.path.isfile(file_path):
                 os.remove(file_path)
-        
+ 
         for file in os.listdir(ZIP_FOLDER):
             file_path = os.path.join(ZIP_FOLDER, file)
             if os.path.isfile(file_path):
                 file_age = time.time() - os.path.getmtime(file_path)
                 if file_age > 3600:
                     os.remove(file_path)
-        
+ 
         return jsonify({'success': True, 'message': 'Cleanup completed'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

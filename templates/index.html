@@ -8,22 +8,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --merron-black: #0a0a0a;
-            --merron-dark: #1a1a1a;
-            --merron-gray: #2a2a2a;
-            --merron-light-gray: #e5e7eb;
+            --merron-black: #1a1a1a;
+            --merron-dark: #2d2d2d;
+            --merron-gray: #4a4a4a;
+            --merron-light-gray: #f0f0f0;
             --merron-red: #dc2626;
             --merron-dark-red: #b91c1c;
             --merron-white: #ffffff;
-            --merron-off-white: #f8fafc;
-            --merron-text: #1f2937;
-            --merron-text-light: #6b7280;
+            --merron-off-white: #fafafa;
+            --merron-text: #333333;
+            --merron-text-light: #666666;
             --merron-accent: #ef4444;
             --merron-blue: #3b82f6;
             --merron-dark-blue: #2563eb;
             --merron-green: #10b981;
             --merron-purple: #8b5cf6;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --merron-orange: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
             --shadow: 0 4px 6px rgba(0,0,0,0.1);
             --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
             --shadow-xl: 0 20px 35px -10px rgba(0,0,0,0.15);
@@ -41,7 +42,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #eef2f6 100%);
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             color: var(--merron-text);
             min-height: 100vh;
             line-height: 1.6;
@@ -73,7 +74,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--merron-red) 0%, var(--merron-accent) 50%, var(--merron-purple) 100%);
+            background: linear-gradient(90deg, var(--merron-red) 0%, var(--merron-purple) 50%, var(--merron-blue) 100%);
         }
 
         .logo {
@@ -96,7 +97,7 @@
             justify-content: center;
             font-size: 2.5rem;
             transform: rotate(-5deg);
-            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.2);
             border: 3px solid rgba(255, 255, 255, 0.2);
             animation: float 3s ease-in-out infinite;
         }
@@ -153,6 +154,7 @@
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--shadow-xl);
+            border-color: rgba(220, 38, 38, 0.2);
         }
 
         .stat-card::before {
@@ -211,6 +213,7 @@
         .card:hover {
             box-shadow: var(--shadow-xl);
             transform: translateY(-3px);
+            border-color: rgba(220, 38, 38, 0.2);
         }
 
         .card::before {
@@ -338,12 +341,12 @@
             box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
         }
 
-        .btn-dual {
+        .btn-summary {
             background: linear-gradient(135deg, var(--merron-blue) 0%, var(--merron-dark-blue) 100%);
             color: var(--merron-white);
         }
 
-        .btn-dual:hover:not(:disabled) {
+        .btn-summary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
         }
@@ -381,6 +384,13 @@
             box-shadow: none !important;
         }
 
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            justify-content: center;
+        }
+
         /* File Info */
         .file-info {
             margin-top: 1.5rem;
@@ -402,6 +412,12 @@
             border: 1px solid var(--merron-light-gray);
         }
 
+        .status-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         .status-dot {
             width: 12px;
             height: 12px;
@@ -416,11 +432,11 @@
         }
 
         @keyframes pulse-green {
-            0%, 100% { 
+            0%, 100% {
                 opacity: 1;
                 box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
             }
-            50% { 
+            50% {
                 opacity: 0.7;
                 box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
             }
@@ -478,7 +494,7 @@
             border-bottom: 1px solid var(--merron-light-gray);
         }
 
-        .preview-table tr:hover {
+        .preview-table tr:hover td {
             background: rgba(220, 38, 38, 0.05);
         }
 
@@ -502,6 +518,7 @@
         .summary-item:hover {
             transform: translateY(-5px);
             box-shadow: var(--shadow-lg);
+            border-color: rgba(220, 38, 38, 0.3);
         }
 
         .summary-value {
@@ -558,7 +575,7 @@
         }
 
         .badge-summary {
-            background: linear-gradient(135deg, var(--merron-blue) 0%, #1e40af 100%);
+            background: linear-gradient(135deg, var(--merron-blue) 0%, var(--merron-dark-blue) 100%);
             color: white;
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
@@ -567,7 +584,7 @@
             margin-left: 0.5rem;
         }
 
-        /* Modal */
+        /* Modal Styles - Beautiful Centered Design */
         .modal {
             display: none;
             position: fixed;
@@ -575,32 +592,223 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            z-index: 2000;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            z-index: 10000;
             align-items: center;
             justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-content {
             background: var(--merron-white);
-            padding: 2rem;
-            border-radius: var(--radius-xl);
-            max-width: 600px;
+            border-radius: 24px;
+            max-width: 700px;
             width: 90%;
-            box-shadow: var(--shadow-xl);
-            animation: modalSlideIn 0.3s ease;
+            position: relative;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+            overflow: hidden;
         }
 
-        @keyframes modalSlideIn {
+        @keyframes slideIn {
             from {
+                transform: translateY(-30px) scale(0.95);
                 opacity: 0;
-                transform: translateY(-50px);
             }
             to {
+                transform: translateY(0) scale(1);
                 opacity: 1;
-                transform: translateY(0);
             }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+            padding: 1.75rem 2rem;
+            border-bottom: 2px solid rgba(220, 38, 38, 0.1);
+        }
+
+        .modal-header h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--merron-red);
+        }
+
+        .modal-header h3 i {
+            font-size: 1.75rem;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(0, 0, 0, 0.05);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--merron-text-light);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .modal-close:hover {
+            background: var(--merron-red);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            padding: 1.25rem 2rem 2rem 2rem;
+            background: var(--merron-off-white);
+            border-top: 1px solid var(--merron-light-gray);
+        }
+
+        /* Beautiful Option Cards */
+        .option-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin: 1rem 0;
+        }
+
+        .option-card {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--merron-white);
+            border: 2px solid var(--merron-light-gray);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.05), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .option-card:hover::before {
+            left: 100%;
+        }
+
+        .option-card:hover {
+            border-color: var(--merron-red);
+            transform: translateX(8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .option-icon-wrapper {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover .option-icon-wrapper {
+            transform: scale(1.1);
+        }
+
+        .option-card:nth-child(1) .option-icon-wrapper i {
+            color: var(--merron-red);
+        }
+
+        .option-card:nth-child(2) .option-icon-wrapper i {
+            color: var(--merron-blue);
+        }
+
+        .option-card:nth-child(3) .option-icon-wrapper i {
+            color: var(--merron-purple);
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--merron-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .option-badge {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .option-badge-blue {
+            background: linear-gradient(135deg, var(--merron-blue) 0%, var(--merron-dark-blue) 100%);
+        }
+
+        .option-description {
+            font-size: 0.85rem;
+            color: var(--merron-text-light);
+            line-height: 1.5;
+        }
+
+        .option-arrow {
+            color: var(--merron-text-light);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .option-card:hover .option-arrow {
+            transform: translateX(5px);
+            color: var(--merron-red);
+        }
+
+        .summary-columns-list {
+            background: #fef2f2;
+            padding: 0.75rem;
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--merron-red);
         }
 
         /* Toast */
@@ -611,12 +819,13 @@
             padding: 1rem 1.5rem;
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
-            z-index: 1000;
+            z-index: 10001;
             transform: translateX(400px);
             transition: transform 0.3s ease;
             max-width: 400px;
             background: var(--merron-white);
             border-left: 4px solid var(--merron-red);
+            color: var(--merron-text);
         }
 
         .toast.show {
@@ -632,7 +841,32 @@
         }
 
         .toast-warning {
-            border-left-color: #f59e0b;
+            border-left-color: var(--merron-orange);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--merron-red);
+            animation: spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
         }
 
         .hidden {
@@ -643,6 +877,37 @@
             background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        .mt-2 {
+            margin-top: 2rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .text-gray {
+            color: var(--merron-text-light);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--merron-light-gray);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--merron-red);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--merron-dark-red);
         }
     </style>
 </head>
@@ -789,63 +1054,97 @@
     <!-- Requirements Modal -->
     <div class="modal" id="requirementsModal">
         <div class="modal-content">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3><i class="fas fa-list-check text-gradient"></i> Required Columns</h3>
-                <button class="modal-close" onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            <div class="modal-header">
+                <h3><i class="fas fa-list-check"></i> Required Columns</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
-            <p>Your Excel file must include these exact column names:</p>
-            <ul style="margin: 1.5rem 0; list-style: none;">
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Branch Name</li>
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> order status</li>
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Bill No</li>
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Bill Amount</li>
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Discount Amount</li>
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Tax Amount</li>
-                <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Net Amount</li>
-            </ul>
-            <button class="btn btn-primary" onclick="closeModal()" style="width: 100%;">Got it</button>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem;">Your Excel file must include these exact column names:</p>
+                <ul style="margin: 1rem 0; list-style: none;">
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Branch Name</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> order status</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Bill No</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Bill Amount</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Discount Amount</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Tax Amount</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Net Amount</li>
+                </ul>
+                <p class="text-gray" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> Additional columns are optional and will be preserved if present.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()" style="width: 100%;">Got it</button>
+            </div>
         </div>
     </div>
 
-    <!-- Option Modal -->
+    <!-- Beautiful Option Modal -->
     <div class="modal" id="optionModal">
         <div class="modal-content">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3><i class="fas fa-cogs text-gradient"></i> Processing Options</h3>
-                <button class="modal-close" onclick="closeOptionModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            <div class="modal-header">
+                <h3><i class="fas fa-cogs"></i> Processing Options</h3>
+                <button class="modal-close" onclick="closeOptionModal()">&times;</button>
             </div>
-            <p style="margin-bottom: 1.5rem;">Choose how to process your data:</p>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <button class="btn btn-primary" onclick="selectOption('google_sheets')" style="justify-content: flex-start; text-align: left; padding: 1.25rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <i class="fab fa-google-drive fa-2x"></i>
-                        <div>
-                            <div style="font-weight: 700;">Upload to Google Sheets</div>
-                            <div style="font-size: 0.85rem; opacity: 0.8;">Full data (20 columns)</div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1.5rem; color: var(--merron-text-light);">Choose how you want to process your data:</p>
+                <div class="option-cards">
+                    <div class="option-card" onclick="selectOption('google_sheets')">
+                        <div class="option-icon-wrapper">
+                            <i class="fab fa-google-drive"></i>
+                        </div>
+                        <div class="option-content">
+                            <div class="option-title">
+                                Upload to Main Google Sheets
+                                <span class="option-badge">20 Columns</span>
+                            </div>
+                            <div class="option-description">
+                                Full data with all 20 columns including complete details, transactions, and metadata
+                            </div>
+                        </div>
+                        <div class="option-arrow">
+                            <i class="fas fa-chevron-right"></i>
                         </div>
                     </div>
-                </button>
-                <button class="btn btn-dual" onclick="selectOption('google_sheets_dual')" style="justify-content: flex-start; text-align: left; padding: 1.25rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <i class="fab fa-google-drive fa-2x"></i>
-                        <i class="fas fa-copy fa-2x" style="margin-left: -0.5rem;"></i>
-                        <div>
-                            <div style="font-weight: 700;">Upload to Both Sheets</div>
-                            <div style="font-size: 0.85rem; opacity: 0.8;">Main (20 cols) + Summary (11 cols: S No, Bill No, Branch Name, Bill Date, Total Bill Amount, Total Discount Amount, Total Tax Amount, Net Amount, Paid AT, Created By, order id)</div>
+
+                    <div class="option-card" onclick="selectOption('summary_sheets')">
+                        <div class="option-icon-wrapper">
+                            <i class="fas fa-table-list"></i>
+                        </div>
+                        <div class="option-content">
+                            <div class="option-title">
+                                Upload to Summary Sheets Only
+                                <span class="option-badge option-badge-blue">11 Columns</span>
+                            </div>
+                            <div class="option-description">
+                                Essential data only: S No, Bill No, Branch Name, Bill Date, Total Bill Amount, Total Discount Amount, Total Tax Amount, Net Amount, Paid AT, Created By, order id
+                            </div>
+                        </div>
+                        <div class="option-arrow">
+                            <i class="fas fa-chevron-right"></i>
                         </div>
                     </div>
-                </button>
-                <button class="btn btn-secondary" onclick="selectOption('download_zip')" style="justify-content: flex-start; text-align: left; padding: 1.25rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <i class="fas fa-file-archive fa-2x"></i>
-                        <div>
-                            <div style="font-weight: 700;">Download ZIP Files</div>
-                            <div style="font-size: 0.85rem; opacity: 0.8;">Excel files by status and branch</div>
+
+                    <div class="option-card" onclick="selectOption('download_zip')">
+                        <div class="option-icon-wrapper">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <div class="option-content">
+                            <div class="option-title">
+                                Download ZIP Files
+                                <span class="option-badge">Excel Export</span>
+                            </div>
+                            <div class="option-description">
+                                Download organized Excel files grouped by status and branch for offline analysis and reporting
+                            </div>
+                        </div>
+                        <div class="option-arrow">
+                            <i class="fas fa-chevron-right"></i>
                         </div>
                     </div>
-                </button>
+                </div>
             </div>
-            <button class="btn btn-danger" onclick="closeOptionModal()" style="margin-top: 1.5rem; width: 100%;">Cancel</button>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="closeOptionModal()" style="width: 100%;">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -939,6 +1238,10 @@
             const formData = new FormData();
             formData.append('file', file);
 
+            const originalBtnText = uploadBtn.innerHTML;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<div class="btn-spinner"></div> Processing...';
+
             try {
                 const response = await fetch('/upload', { method: 'POST', body: formData });
                 const result = await response.json();
@@ -947,7 +1250,7 @@
                     uploadedData = result;
                     document.getElementById('rowCount').textContent = result.rows;
                     totalRowsElement.textContent = result.rows;
-                    
+ 
                     const branches = new Set();
                     if (result.preview) {
                         result.preview.forEach(row => {
@@ -955,7 +1258,7 @@
                         });
                     }
                     totalBranchesElement.textContent = branches.size;
-                    
+ 
                     showPreview(result.preview);
                     processBtn.disabled = false;
                     showProgress(40);
@@ -971,7 +1274,11 @@
             } catch (error) {
                 showToast('Network error: ' + error.message, 'error');
             } finally {
-                setTimeout(() => showProgress(0), 1000);
+                setTimeout(() => {
+                    showProgress(0);
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = originalBtnText;
+                }, 1000);
             }
         }
 
@@ -1004,8 +1311,25 @@
             table.innerHTML += '</tbody>';
         }
 
-        function showOptionModal() { optionModal.style.display = 'flex'; }
-        function closeOptionModal() { optionModal.style.display = 'none'; }
+        function showOptionModal() { 
+            optionModal.style.display = 'flex'; 
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeOptionModal() { 
+            optionModal.style.display = 'none'; 
+            document.body.style.overflow = 'auto';
+        }
+
+        function showRequirementsModal() { 
+            requirementsModal.style.display = 'flex'; 
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() { 
+            requirementsModal.style.display = 'none'; 
+            document.body.style.overflow = 'auto';
+        }
 
         async function selectOption(option) {
             closeOptionModal();
@@ -1022,19 +1346,12 @@
             }, 500);
 
             processBtn.disabled = true;
-            processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            const originalBtnText = processBtn.innerHTML;
+            processBtn.innerHTML = '<div class="btn-spinner"></div> Processing...';
 
             try {
                 let endpoint = '/process-data';
                 let requestBody = { option: option };
-                
-                if (option === 'google_sheets_dual') {
-                    endpoint = '/update-google-sheets-dual';
-                    requestBody = {};
-                } else if (option === 'google_sheets') {
-                    endpoint = '/update-google-sheets';
-                    requestBody = {};
-                }
 
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -1045,14 +1362,14 @@
                 const result = await response.json();
                 clearInterval(syncInterval);
                 showProgress(100);
-                
+ 
                 if (response.ok && result.success) {
                     if (option === 'google_sheets') {
-                        showSummary(result);
-                        showToast('✅ Data synchronized with Google Sheets!', 'success');
-                    } else if (option === 'google_sheets_dual') {
-                        showDualSummary(result);
-                        showToast('✅ Data synchronized with BOTH Google Sheets!', 'success');
+                        showSummary(result, 'main');
+                        showToast('✅ Data synchronized with MAIN Google Sheets!', 'success');
+                    } else if (option === 'summary_sheets') {
+                        showSummary(result, 'summary');
+                        showToast('✅ Data synchronized with SUMMARY Google Sheets!', 'success');
                     } else if (option === 'download_zip') {
                         showZipSummary(result);
                         setTimeout(() => {
@@ -1066,45 +1383,52 @@
             } catch (error) {
                 showToast('Network error: ' + error.message, 'error');
             } finally {
-                setTimeout(() => showProgress(0), 2000);
-                processBtn.disabled = false;
-                processBtn.innerHTML = '<i class="fas fa-play"></i> Process Data';
+                setTimeout(() => {
+                    showProgress(0);
+                    processBtn.disabled = false;
+                    processBtn.innerHTML = originalBtnText;
+                }, 2000);
             }
         }
 
-        function showDualSummary(result) {
+        function showSummary(result, type) {
             summaryCard.classList.remove('hidden');
             const summaryGrid = document.getElementById('summaryGrid');
             const branchDetails = document.getElementById('branchDetails');
 
+            const badge = type === 'main' ? 
+                '<span class="badge-main">20 Columns</span>' : 
+                '<span class="badge-summary">11 Columns</span>';
+
             summaryGrid.innerHTML = `
-                <div class="summary-item"><div class="summary-value">${result.rows_updated_main || 0}</div><div class="summary-label">Main Sheets <span class="badge-main">20 cols</span></div></div>
-                <div class="summary-item"><div class="summary-value">${result.rows_updated_summary || 0}</div><div class="summary-label">Summary Sheets <span class="badge-summary">11 cols</span></div></div>
-                <div class="summary-item"><div class="summary-value">${result.date || '-'}</div><div class="summary-label">Sync Date</div></div>
-                <div class="summary-item"><div class="summary-value">${result.time || '-'}</div><div class="summary-label">Sync Time</div></div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.rows_updated || 0}</div>
+                    <div class="summary-label">Records Added ${badge}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${Object.keys(result.summary || {}).length}</div>
+                    <div class="summary-label">Status Types</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.date || '-'}</div>
+                    <div class="summary-label">Sync Date</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.time || '-'}</div>
+                    <div class="summary-label">Sync Time</div>
+                </div>
             `;
 
-            if (result.summary_main) {
-                let branchHtml = '<h4 style="margin-bottom: 1rem;"><i class="fas fa-database text-gradient"></i> MAIN SHEETS (20 columns)</h4><div class="branch-list">';
-                for (const [status, branches] of Object.entries(result.summary_main)) {
+            if (result.summary) {
+                let branchHtml = '<h4><i class="fas fa-sitemap text-gradient"></i> Branch Distribution</h4><div class="branch-list">';
+                for (const [status, branches] of Object.entries(result.summary)) {
                     if (Object.keys(branches).length > 0) {
-                        branchHtml += `<div style="font-weight: 700; margin: 1rem 0 0.5rem;">${status}</div>`;
+                        branchHtml += `<div style="font-weight: 700; margin: 1rem 0 0.5rem; color: var(--merron-red);">${status}</div>`;
                         for (const [branch, count] of Object.entries(branches)) {
-                            branchHtml += `<div class="branch-item"><span>📊 ${branch}</span><span class="branch-count">${count}</span></div>`;
-                        }
-                    }
-                }
-                branchHtml += '</div>';
-                
-                branchHtml += '<h4 style="margin: 2rem 0 1rem;"><i class="fas fa-list text-gradient"></i> SUMMARY SHEETS (11 columns)</h4>';
-                branchHtml += '<div style="background: var(--merron-off-white); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.8rem;"><i class="fas fa-info-circle"></i> Columns: S No, Bill No, Branch Name, Bill Date, Total Bill Amount, Total Discount Amount, Total Tax Amount, Net Amount, Paid AT, Created By, order id</div>';
-                branchHtml += '<div class="branch-list">';
-                
-                for (const [status, branches] of Object.entries(result.summary_summary || {})) {
-                    if (Object.keys(branches).length > 0) {
-                        branchHtml += `<div style="font-weight: 700; margin: 1rem 0 0.5rem;">${status}</div>`;
-                        for (const [branch, count] of Object.entries(branches)) {
-                            branchHtml += `<div class="branch-item"><span>📋 ${branch}_summary</span><span class="branch-count">${count}</span></div>`;
+                            branchHtml += `<div class="branch-item">
+                                <span>📊 ${branch}</span>
+                                <span class="branch-count">${count} rows</span>
+                            </div>`;
                         }
                     }
                 }
@@ -1119,43 +1443,31 @@
             const branchDetails = document.getElementById('branchDetails');
 
             summaryGrid.innerHTML = `
-                <div class="summary-item"><div class="summary-value">${result.total_records || 0}</div><div class="summary-label">Total Records</div></div>
-                <div class="summary-item"><div class="summary-value">${result.status_count || 0}</div><div class="summary-label">Status Folders</div></div>
-                <div class="summary-item"><div class="summary-value">📦</div><div class="summary-label">ZIP File</div></div>
-                <div class="summary-item"><div class="summary-value">${new Date().toLocaleTimeString()}</div><div class="summary-label">Generated</div></div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.total_records || 0}</div>
+                    <div class="summary-label">Total Records</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.status_count || 0}</div>
+                    <div class="summary-label">Status Folders</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">📦</div>
+                    <div class="summary-label">ZIP File</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${new Date().toLocaleTimeString()}</div>
+                    <div class="summary-label">Generated</div>
+                </div>
             `;
 
             if (result.status_summary) {
                 let branchHtml = '<h4><i class="fas fa-folder-open text-gradient"></i> Files in ZIP</h4><div class="branch-list">';
                 for (const [status, count] of Object.entries(result.status_summary)) {
-                    branchHtml += `<div class="branch-item"><span>${status}.xlsx</span><span class="branch-count">${count} records</span></div>`;
-                }
-                branchHtml += '</div>';
-                branchDetails.innerHTML = branchHtml;
-            }
-        }
-
-        function showSummary(result) {
-            summaryCard.classList.remove('hidden');
-            const summaryGrid = document.getElementById('summaryGrid');
-            const branchDetails = document.getElementById('branchDetails');
-
-            summaryGrid.innerHTML = `
-                <div class="summary-item"><div class="summary-value">${result.rows_updated || 0}</div><div class="summary-label">Records Added</div></div>
-                <div class="summary-item"><div class="summary-value">${Object.keys(result.summary || {}).length}</div><div class="summary-label">Status Types</div></div>
-                <div class="summary-item"><div class="summary-value">${result.date || '-'}</div><div class="summary-label">Sync Date</div></div>
-                <div class="summary-item"><div class="summary-value">${result.time || '-'}</div><div class="summary-label">Sync Time</div></div>
-            `;
-
-            if (result.summary) {
-                let branchHtml = '<h4><i class="fas fa-sitemap text-gradient"></i> Branch Distribution</h4><div class="branch-list">';
-                for (const [status, branches] of Object.entries(result.summary)) {
-                    if (Object.keys(branches).length > 0) {
-                        branchHtml += `<div style="font-weight: 700; margin: 1rem 0 0.5rem;">${status}</div>`;
-                        for (const [branch, count] of Object.entries(branches)) {
-                            branchHtml += `<div class="branch-item"><span>${branch}</span><span class="branch-count">${count}</span></div>`;
-                        }
-                    }
+                    branchHtml += `<div class="branch-item">
+                        <span><i class="fas fa-file-excel"></i> ${status}.xlsx</span>
+                        <span class="branch-count">${count} records</span>
+                    </div>`;
                 }
                 branchHtml += '</div>';
                 branchDetails.innerHTML = branchHtml;
@@ -1208,6 +1520,8 @@
             uploadBtn.disabled = true;
             clearBtn.disabled = true;
             processBtn.disabled = true;
+            totalRowsElement.textContent = '0';
+            totalBranchesElement.textContent = '0';
             showProgress(0);
             showToast('File cleared', 'warning');
         }
@@ -1218,12 +1532,26 @@
             setTimeout(() => toast.classList.remove('show'), 5000);
         }
 
-        function showRequirementsModal() { requirementsModal.style.display = 'flex'; }
-        function closeModal() { requirementsModal.style.display = 'none'; }
-
+        // Close modal when clicking outside
         window.addEventListener('click', (event) => {
-            if (event.target === requirementsModal) closeModal();
-            if (event.target === optionModal) closeOptionModal();
+            if (event.target === requirementsModal) {
+                closeModal();
+            }
+            if (event.target === optionModal) {
+                closeOptionModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (requirementsModal.style.display === 'flex') {
+                    closeModal();
+                }
+                if (optionModal.style.display === 'flex') {
+                    closeOptionModal();
+                }
+            }
         });
     </script>
 </body>
