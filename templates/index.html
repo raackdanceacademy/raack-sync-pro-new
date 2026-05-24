@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raack Sync Pro | Enterprise Data Integration</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --merron-black: #1a1a1a;
+            --merron-dark: #2d2d2d;
+            --merron-gray: #4a4a4a;
+            --merron-light-gray: #f0f0f0;
+            --merron-red: #dc2626;
+            --merron-dark-red: #b91c1c;
+            --merron-white: #ffffff;
+            --merron-off-white: #fafafa;
+            --merron-text: #333333;
+            --merron-text-light: #666666;
+            --merron-accent: #ef4444;
+            --merron-blue: #3b82f6;
+            --merron-dark-blue: #2563eb;
+            --merron-green: #10b981;
+            --merron-purple: #8b5cf6;
+            --merron-orange: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 35px -10px rgba(0,0,0,0.15);
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            color: var(--merron-text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2.5rem;
+            background: var(--merron-white);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(220, 38, 38, 0.1);
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--merron-red) 0%, var(--merron-purple) 50%, var(--merron-blue) 100%);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            color: var(--merron-white);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            transform: rotate(-5deg);
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: rotate(-5deg) translateY(0px); }
+            50% { transform: rotate(-5deg) translateY(-10px); }
+        }
+
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--merron-text-light);
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-card {
+            background: var(--merron-white);
+            padding: 2rem;
+            border-radius: var(--radius-xl);
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+            border-color: rgba(220, 38, 38, 0.2);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--merron-text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--merron-white);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-3px);
+            border-color: rgba(220, 38, 38, 0.2);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+        }
+
+        .card-header {
+            padding: 1.75rem;
+            background: linear-gradient(135deg, var(--merron-off-white) 0%, var(--merron-white) 100%);
+            border-bottom: 1px solid var(--merron-light-gray);
+        }
+
+        .card-header h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--merron-text);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header h2 i {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--merron-light-gray);
+            border-radius: var(--radius-lg);
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--merron-off-white);
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--merron-red);
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--merron-red);
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: var(--merron-text);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text strong {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.85rem 1.75rem;
+            border: none;
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-dark-red) 100%);
+            color: var(--merron-white);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-summary {
+            background: linear-gradient(135deg, var(--merron-blue) 0%, var(--merron-dark-blue) 100%);
+            color: var(--merron-white);
+        }
+
+        .btn-summary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--merron-white);
+            color: var(--merron-text);
+            border: 1px solid var(--merron-light-gray);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            border-color: var(--merron-red);
+            color: var(--merron-red);
+        }
+
+        .btn-danger {
+            background: var(--merron-white);
+            color: var(--merron-text);
+            border: 1px solid var(--merron-light-gray);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #fef2f2;
+            border-color: var(--merron-red);
+            color: var(--merron-red);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            justify-content: center;
+        }
+
+        /* File Info */
+        .file-info {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border-radius: var(--radius-lg);
+            border-left: 4px solid var(--merron-red);
+        }
+
+        /* Connection Status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--merron-off-white) 0%, var(--merron-white) 100%);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--merron-light-gray);
+        }
+
+        .status-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .status-dot.connected {
+            background: var(--merron-green);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                opacity: 0.7;
+                box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        .status-dot.disconnected {
+            background: #9ca3af;
+        }
+
+        /* Progress Bar */
+        .update-section {
+            margin-top: 2rem;
+            padding: 1.75rem;
+            background: linear-gradient(135deg, var(--merron-off-white) 0%, var(--merron-white) 100%);
+            border-radius: var(--radius-lg);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--merron-light-gray);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        /* Preview Table */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .preview-table th {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .preview-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--merron-light-gray);
+        }
+
+        .preview-table tr:hover td {
+            background: rgba(220, 38, 38, 0.05);
+        }
+
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .summary-item {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--merron-off-white) 0%, var(--merron-white) 100%);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            border: 1px solid var(--merron-light-gray);
+            transition: all 0.3s ease;
+        }
+
+        .summary-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(220, 38, 38, 0.3);
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Branch List */
+        .branch-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .branch-item {
+            padding: 1rem;
+            background: var(--merron-off-white);
+            border-radius: var(--radius);
+            border: 1px solid var(--merron-light-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .branch-item:hover {
+            border-color: var(--merron-red);
+            transform: translateX(5px);
+            background: white;
+        }
+
+        .branch-count {
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.1rem;
+        }
+
+        /* Badges */
+        .badge-main {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .badge-summary {
+            background: linear-gradient(135deg, var(--merron-blue) 0%, var(--merron-dark-blue) 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        /* Modal Styles - Beautiful Centered Design */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: var(--merron-white);
+            border-radius: 24px;
+            max-width: 700px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+            overflow: hidden;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-30px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+            padding: 1.75rem 2rem;
+            border-bottom: 2px solid rgba(220, 38, 38, 0.1);
+        }
+
+        .modal-header h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--merron-red);
+        }
+
+        .modal-header h3 i {
+            font-size: 1.75rem;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(0, 0, 0, 0.05);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--merron-text-light);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .modal-close:hover {
+            background: var(--merron-red);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            padding: 1.25rem 2rem 2rem 2rem;
+            background: var(--merron-off-white);
+            border-top: 1px solid var(--merron-light-gray);
+        }
+
+        /* Beautiful Option Cards */
+        .option-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin: 1rem 0;
+        }
+
+        .option-card {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--merron-white);
+            border: 2px solid var(--merron-light-gray);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.05), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .option-card:hover::before {
+            left: 100%;
+        }
+
+        .option-card:hover {
+            border-color: var(--merron-red);
+            transform: translateX(8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .option-icon-wrapper {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover .option-icon-wrapper {
+            transform: scale(1.1);
+        }
+
+        .option-card:nth-child(1) .option-icon-wrapper i {
+            color: var(--merron-red);
+        }
+
+        .option-card:nth-child(2) .option-icon-wrapper i {
+            color: var(--merron-blue);
+        }
+
+        .option-card:nth-child(3) .option-icon-wrapper i {
+            color: var(--merron-purple);
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--merron-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .option-badge {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .option-badge-blue {
+            background: linear-gradient(135deg, var(--merron-blue) 0%, var(--merron-dark-blue) 100%);
+        }
+
+        .option-description {
+            font-size: 0.85rem;
+            color: var(--merron-text-light);
+            line-height: 1.5;
+        }
+
+        .option-arrow {
+            color: var(--merron-text-light);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .option-card:hover .option-arrow {
+            transform: translateX(5px);
+            color: var(--merron-red);
+        }
+
+        .summary-columns-list {
+            background: #fef2f2;
+            padding: 0.75rem;
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--merron-red);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 10001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 400px;
+            background: var(--merron-white);
+            border-left: 4px solid var(--merron-red);
+            color: var(--merron-text);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-success {
+            border-left-color: var(--merron-green);
+        }
+
+        .toast-error {
+            border-left-color: var(--merron-red);
+        }
+
+        .toast-warning {
+            border-left-color: var(--merron-orange);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--merron-red);
+            animation: spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--merron-red) 0%, var(--merron-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mt-2 {
+            margin-top: 2rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .text-gray {
+            color: var(--merron-text-light);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--merron-light-gray);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--merron-red);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--merron-dark-red);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div>
+                    <h1>Raack Sync Pro</h1>
+                    <p class="subtitle">Enterprise Data Integration • Seamless Google Sheets Automation</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalRows">0</div>
+                <div class="stat-label">Total Records</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalBranches">0</div>
+                <div class="stat-label">Active Branches</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">7</div>
+                <div class="stat-label">Status Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="connectionStatus">●</div>
+                <div class="stat-label">Connection Status</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Upload Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-cloud-upload-alt"></i> Data Import</h2>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-file-excel"></i>
+                        </div>
+                        <div class="upload-text">
+                            <strong>Drop your Excel file here</strong>
+                            <p>or click to browse</p>
+                        </div>
+                        <p class="text-gray" style="margin-bottom: 1.5rem; font-size: 0.85rem;">
+                            Supported: .xlsx, .xls, .csv
+                        </p>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                        <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv">
+                    </div>
+
+                    <div class="file-info hidden" id="fileInfo">
+                        <h4><i class="fas fa-info-circle"></i> File Details</h4>
+                        <p><strong>File:</strong> <span id="fileName">-</span></p>
+                        <p><strong>Records:</strong> <span id="rowCount" class="text-gradient">0</span></p>
+                        <p><strong>Upload Time:</strong> <span id="uploadTime">-</span></p>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>
+                            <i class="fas fa-chart-line"></i> Process File
+                        </button>
+                        <button class="btn btn-danger" id="clearBtn" onclick="clearFile()" disabled>
+                            <i class="fas fa-trash-alt"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-cogs"></i> Data Processing</h2>
+                </div>
+                <div class="card-body">
+                    <div class="connection-status">
+                        <div class="status-content">
+                            <div class="status-dot" id="statusDot"></div>
+                            <span class="status-text" id="statusText">Checking connection...</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="checkConnection()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div class="update-section">
+                        <div class="progress-header" style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <span><i class="fas fa-chart-line text-gradient"></i> Processing Progress</span>
+                            <span class="progress-percentage" id="progressPercentage" style="font-weight: 800; color: var(--merron-red);">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="processBtn" onclick="showOptionModal()" disabled>
+                            <i class="fas fa-play"></i> Process Data
+                        </button>
+                        <button class="btn btn-secondary" onclick="showRequirementsModal()">
+                            <i class="fas fa-question-circle"></i> Requirements
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="card hidden" id="previewCard">
+                <div class="card-header">
+                    <h2><i class="fas fa-table"></i> Data Preview</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-gray mb-1"><i class="fas fa-eye"></i> First 10 records</p>
+                    <div style="overflow-x: auto;">
+                        <table class="preview-table" id="previewTable"></table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Card -->
+            <div class="card hidden" id="summaryCard">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-pie"></i> Processing Summary</h2>
+                </div>
+                <div class="card-body">
+                    <div class="summary-grid" id="summaryGrid"></div>
+                    <div class="mt-2" id="branchDetails"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Requirements Modal -->
+    <div class="modal" id="requirementsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-list-check"></i> Required Columns</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem;">Your Excel file must include these exact column names:</p>
+                <ul style="margin: 1rem 0; list-style: none;">
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Branch Name</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> order status</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Bill No</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Bill Amount</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Discount Amount</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Total Tax Amount</li>
+                    <li style="padding: 0.5rem 0;"><i class="fas fa-check-circle" style="color: var(--merron-red);"></i> Net Amount</li>
+                </ul>
+                <p class="text-gray" style="font-size: 0.85rem;"><i class="fas fa-info-circle"></i> Additional columns are optional and will be preserved if present.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()" style="width: 100%;">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Beautiful Option Modal -->
+    <div class="modal" id="optionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cogs"></i> Processing Options</h3>
+                <button class="modal-close" onclick="closeOptionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1.5rem; color: var(--merron-text-light);">Choose how you want to process your data:</p>
+                <div class="option-cards">
+                    <div class="option-card" onclick="selectOption('google_sheets')">
+                        <div class="option-icon-wrapper">
+                            <i class="fab fa-google-drive"></i>
+                        </div>
+                        <div class="option-content">
+                            <div class="option-title">
+                                Upload to Main Google Sheets
+                                <span class="option-badge">20 Columns</span>
+                            </div>
+                            <div class="option-description">
+                                Full data with all 20 columns including complete details, transactions, and metadata
+                            </div>
+                        </div>
+                        <div class="option-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="option-card" onclick="selectOption('summary_sheets')">
+                        <div class="option-icon-wrapper">
+                            <i class="fas fa-table-list"></i>
+                        </div>
+                        <div class="option-content">
+                            <div class="option-title">
+                                Upload to Summary Sheets Only
+                                <span class="option-badge option-badge-blue">11 Columns</span>
+                            </div>
+                            <div class="option-description">
+                                Essential data only: S No, Bill No, Branch Name, Bill Date, Total Bill Amount, Total Discount Amount, Total Tax Amount, Net Amount, Paid AT, Created By, order id
+                            </div>
+                        </div>
+                        <div class="option-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="option-card" onclick="selectOption('download_zip')">
+                        <div class="option-icon-wrapper">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <div class="option-content">
+                            <div class="option-title">
+                                Download ZIP Files
+                                <span class="option-badge">Excel Export</span>
+                            </div>
+                            <div class="option-description">
+                                Download organized Excel files grouped by status and branch for offline analysis and reporting
+                            </div>
+                        </div>
+                        <div class="option-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="closeOptionModal()" style="width: 100%;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedData = null;
+        let uploadTime = null;
+        let syncInterval = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const processBtn = document.getElementById('processBtn');
+        const previewCard = document.getElementById('previewCard');
+        const summaryCard = document.getElementById('summaryCard');
+        const toast = document.getElementById('toast');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const totalRowsElement = document.getElementById('totalRows');
+        const totalBranchesElement = document.getElementById('totalBranches');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const requirementsModal = document.getElementById('requirementsModal');
+        const optionModal = document.getElementById('optionModal');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkConnection();
+            setupDragAndDrop();
+            showToast('Raack Sync Pro initialized. Ready for data import.', 'success');
+        });
+
+        function setupDragAndDrop() {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+            });
+
+            uploadArea.addEventListener('drop', handleDrop, false);
+        }
+
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+                showToast('Please select an Excel or CSV file', 'error');
+                return;
+            }
+
+            document.getElementById('fileName').textContent = file.name;
+            uploadTime = new Date().toLocaleTimeString();
+            document.getElementById('uploadTime').textContent = uploadTime;
+            fileInfo.classList.remove('hidden');
+            uploadBtn.disabled = false;
+            clearBtn.disabled = false;
+            showToast(`File "${file.name}" loaded successfully`, 'success');
+        }
+
+        async function uploadFile() {
+            const file = fileInput.files[0];
+            if (!file) {
+                showToast('Please select a file first', 'error');
+                return;
+            }
+
+            showProgress(20);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const originalBtnText = uploadBtn.innerHTML;
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<div class="btn-spinner"></div> Processing...';
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (response.ok) {
+                    uploadedData = result;
+                    document.getElementById('rowCount').textContent = result.rows;
+                    totalRowsElement.textContent = result.rows;
+ 
+                    const branches = new Set();
+                    if (result.preview) {
+                        result.preview.forEach(row => {
+                            if (row['Branch Name']) branches.add(row['Branch Name']);
+                        });
+                    }
+                    totalBranchesElement.textContent = branches.size;
+ 
+                    showPreview(result.preview);
+                    processBtn.disabled = false;
+                    showProgress(40);
+                    showToast(`✅ ${result.rows} records processed successfully`, 'success');
+                } else {
+                    if (result.error && result.error.includes('Missing columns')) {
+                        showToast('Missing required columns in the file', 'error');
+                        showRequirementsModal();
+                    } else {
+                        showToast(result.error || 'Upload failed', 'error');
+                    }
+                }
+            } catch (error) {
+                showToast('Network error: ' + error.message, 'error');
+            } finally {
+                setTimeout(() => {
+                    showProgress(0);
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = originalBtnText;
+                }, 1000);
+            }
+        }
+
+        function showPreview(data) {
+            if (!data || data.length === 0) {
+                showToast('No data to preview', 'warning');
+                return;
+            }
+
+            previewCard.classList.remove('hidden');
+            const table = document.getElementById('previewTable');
+            table.innerHTML = '';
+
+            const headers = Object.keys(data[0]);
+            let headerRow = '<thead><tr>';
+            headers.forEach(header => headerRow += `<th>${header}</th>`);
+            headerRow += '</tr></thead><tbody>';
+            table.innerHTML = headerRow;
+
+            data.forEach(row => {
+                let rowHtml = '<tr>';
+                headers.forEach(header => {
+                    let cellValue = row[header];
+                    if (cellValue === null || cellValue === undefined) cellValue = '';
+                    rowHtml += `<td>${cellValue}</td>`;
+                });
+                rowHtml += '</tr>';
+                table.innerHTML += rowHtml;
+            });
+            table.innerHTML += '</tbody>';
+        }
+
+        function showOptionModal() { 
+            optionModal.style.display = 'flex'; 
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeOptionModal() { 
+            optionModal.style.display = 'none'; 
+            document.body.style.overflow = 'auto';
+        }
+
+        function showRequirementsModal() { 
+            requirementsModal.style.display = 'flex'; 
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() { 
+            requirementsModal.style.display = 'none'; 
+            document.body.style.overflow = 'auto';
+        }
+
+        async function selectOption(option) {
+            closeOptionModal();
+            if (!uploadedData) {
+                showToast('Please upload a file first', 'error');
+                return;
+            }
+
+            showProgress(20);
+            const progressSteps = [30, 45, 60, 75, 85, 95, 100];
+            let step = 0;
+            syncInterval = setInterval(() => {
+                if (step < progressSteps.length) showProgress(progressSteps[step++]);
+            }, 500);
+
+            processBtn.disabled = true;
+            const originalBtnText = processBtn.innerHTML;
+            processBtn.innerHTML = '<div class="btn-spinner"></div> Processing...';
+
+            try {
+                let endpoint = '/process-data';
+                let requestBody = { option: option };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+                clearInterval(syncInterval);
+                showProgress(100);
+ 
+                if (response.ok && result.success) {
+                    if (option === 'google_sheets') {
+                        showSummary(result, 'main');
+                        showToast('✅ Data synchronized with MAIN Google Sheets!', 'success');
+                    } else if (option === 'summary_sheets') {
+                        showSummary(result, 'summary');
+                        showToast('✅ Data synchronized with SUMMARY Google Sheets!', 'success');
+                    } else if (option === 'download_zip') {
+                        showZipSummary(result);
+                        setTimeout(() => {
+                            window.location.href = `/download-zip/${result.zip_filename}`;
+                            showToast('📥 ZIP file download started!', 'success');
+                        }, 1000);
+                    }
+                } else {
+                    showToast(result.error || 'Processing failed', 'error');
+                }
+            } catch (error) {
+                showToast('Network error: ' + error.message, 'error');
+            } finally {
+                setTimeout(() => {
+                    showProgress(0);
+                    processBtn.disabled = false;
+                    processBtn.innerHTML = originalBtnText;
+                }, 2000);
+            }
+        }
+
+        function showSummary(result, type) {
+            summaryCard.classList.remove('hidden');
+            const summaryGrid = document.getElementById('summaryGrid');
+            const branchDetails = document.getElementById('branchDetails');
+
+            const badge = type === 'main' ? 
+                '<span class="badge-main">20 Columns</span>' : 
+                '<span class="badge-summary">11 Columns</span>';
+
+            summaryGrid.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-value">${result.rows_updated || 0}</div>
+                    <div class="summary-label">Records Added ${badge}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${Object.keys(result.summary || {}).length}</div>
+                    <div class="summary-label">Status Types</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.date || '-'}</div>
+                    <div class="summary-label">Sync Date</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.time || '-'}</div>
+                    <div class="summary-label">Sync Time</div>
+                </div>
+            `;
+
+            if (result.summary) {
+                let branchHtml = '<h4><i class="fas fa-sitemap text-gradient"></i> Branch Distribution</h4><div class="branch-list">';
+                for (const [status, branches] of Object.entries(result.summary)) {
+                    if (Object.keys(branches).length > 0) {
+                        branchHtml += `<div style="font-weight: 700; margin: 1rem 0 0.5rem; color: var(--merron-red);">${status}</div>`;
+                        for (const [branch, count] of Object.entries(branches)) {
+                            branchHtml += `<div class="branch-item">
+                                <span>📊 ${branch}</span>
+                                <span class="branch-count">${count} rows</span>
+                            </div>`;
+                        }
+                    }
+                }
+                branchHtml += '</div>';
+                branchDetails.innerHTML = branchHtml;
+            }
+        }
+
+        function showZipSummary(result) {
+            summaryCard.classList.remove('hidden');
+            const summaryGrid = document.getElementById('summaryGrid');
+            const branchDetails = document.getElementById('branchDetails');
+
+            summaryGrid.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-value">${result.total_records || 0}</div>
+                    <div class="summary-label">Total Records</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${result.status_count || 0}</div>
+                    <div class="summary-label">Status Folders</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">📦</div>
+                    <div class="summary-label">ZIP File</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${new Date().toLocaleTimeString()}</div>
+                    <div class="summary-label">Generated</div>
+                </div>
+            `;
+
+            if (result.status_summary) {
+                let branchHtml = '<h4><i class="fas fa-folder-open text-gradient"></i> Files in ZIP</h4><div class="branch-list">';
+                for (const [status, count] of Object.entries(result.status_summary)) {
+                    branchHtml += `<div class="branch-item">
+                        <span><i class="fas fa-file-excel"></i> ${status}.xlsx</span>
+                        <span class="branch-count">${count} records</span>
+                    </div>`;
+                }
+                branchHtml += '</div>';
+                branchDetails.innerHTML = branchHtml;
+            }
+        }
+
+        function showProgress(percentage) {
+            progressFill.style.width = percentage + '%';
+            progressPercentage.textContent = percentage + '%';
+        }
+
+        async function checkConnection() {
+            statusText.textContent = 'Checking connection...';
+            statusDot.className = 'status-dot';
+            connectionStatus.textContent = '●';
+            connectionStatus.style.color = '#9ca3af';
+
+            try {
+                const response = await fetch('/check-google-sheets');
+                const result = await response.json();
+
+                if (result.accessible) {
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'Connected to Google Sheets';
+                    connectionStatus.textContent = '●';
+                    connectionStatus.style.color = '#10b981';
+                    showToast('✅ Connected to Google Sheets', 'success');
+                } else {
+                    statusDot.className = 'status-dot disconnected';
+                    statusText.textContent = 'Connection failed';
+                    connectionStatus.textContent = '●';
+                    connectionStatus.style.color = '#9ca3af';
+                    showToast('❌ Cannot connect to Google Sheets', 'error');
+                }
+            } catch (error) {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Connection error';
+                connectionStatus.textContent = '●';
+                connectionStatus.style.color = '#9ca3af';
+                showToast('Network error: ' + error.message, 'error');
+            }
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            uploadedData = null;
+            fileInfo.classList.add('hidden');
+            previewCard.classList.add('hidden');
+            summaryCard.classList.add('hidden');
+            uploadBtn.disabled = true;
+            clearBtn.disabled = true;
+            processBtn.disabled = true;
+            totalRowsElement.textContent = '0';
+            totalBranchesElement.textContent = '0';
+            showProgress(0);
+            showToast('File cleared', 'warning');
+        }
+
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = `toast toast-${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 5000);
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === requirementsModal) {
+                closeModal();
+            }
+            if (event.target === optionModal) {
+                closeOptionModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (requirementsModal.style.display === 'flex') {
+                    closeModal();
+                }
+                if (optionModal.style.display === 'flex') {
+                    closeOptionModal();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
